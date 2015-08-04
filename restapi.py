@@ -1,5 +1,5 @@
 from txrestapi.resource import APIResource
-from txrestapi.methods import GET, POST ALL
+from txrestapi.methods import GET, POST, ALL
 
 DEFAULT_RECORDS_COUNT = 20
 DEFAULT_RECORDS_OFFSET = 0
