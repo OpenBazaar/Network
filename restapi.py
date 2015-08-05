@@ -189,6 +189,16 @@ class OpenBazaarAPI(APIResource):
 
         return args
 
+    @POST('^/create_listing')
+    def get_my_listings(self, request):
+        """Retrieve current user's listings."""
+        args = request.args
+        count = args.get('count', DEFAULT_RECORDS_COUNT)
+        offset = args.get('offset', DEFAULT_RECORDS_OFFSET)
+        filter = args.get('filter', '')
+
+        return args
+
     @ALL('^/')
     def default(self, request):
         return "Your request did not match any API calls. %s" % request
