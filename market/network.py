@@ -6,14 +6,14 @@ import nacl.signing
 
 from twisted.internet import defer
 from market.protocol import MarketProtocol
-from dht.utils import digest, deferredDict
+from dht.utils import digest
 from collections import OrderedDict
 from constants import DATA_FOLDER
 from protos import objects
 from binascii import hexlify, unhexlify
 
-class Server(object):
 
+class Server(object):
     def __init__(self, kserver, signing_key):
         """
         A high level class for sending direct, market messages to other nodes.
@@ -42,12 +42,14 @@ class Server(object):
             if digest(result[1][0]) == contract_hash:
                 def ret(result, contract):
                     return contract
+
                 contract = json.loads(result[1][0], object_pairs_hook=OrderedDict)
                 try:
                     signature = contract["vendor"]["signatures"]["guid"]
                     pubkey = node_to_ask.signed_pubkey[64:]
                     verify_key = nacl.signing.VerifyKey(pubkey)
-                    verify_key.verify(unhexlify(signature) + unhexlify(json.dumps(contract["vendor"]["listing"], indent=4).encode("hex")))
+                    verify_key.verify(unhexlify(signature) + unhexlify(
+                        json.dumps(contract["vendor"]["listing"], indent=4).encode("hex")))
                 except Exception:
                     return None
                 self.cache(result[1][0])
@@ -58,6 +60,7 @@ class Server(object):
                 return contract
             else:
                 return None
+
         if node_to_ask.ip is None:
             return defer.succeed(None)
         d = self.protocol.callGetContract(node_to_ask, contract_hash)
@@ -72,12 +75,14 @@ class Server(object):
             node_to_ask: a `dht.node.Node` object containing an ip and port
             image_hash: a 20 byte hash in raw byte format
         """
+
         def get_result(result):
             if digest(result[1][0]) == image_hash:
                 self.cache(result[1][0])
                 return result[1][0]
             else:
                 return None
+
         if node_to_ask.ip is None:
             return defer.succeed(None)
         d = self.protocol.callGetImage(node_to_ask, image_hash)
@@ -93,6 +98,7 @@ class Server(object):
         def get_result(result):
             def ret(result, profile):
                 return profile
+
             try:
                 pubkey = node_to_ask.signed_pubkey[64:]
                 verify_key = nacl.signing.VerifyKey(pubkey)
@@ -106,6 +112,7 @@ class Server(object):
                 return defer.gatherResults(dl).addCallback(ret, p)
             except:
                 return None
+
         if node_to_ask.ip is None:
             return defer.succeed(None)
         d = self.protocol.callGetProfile(node_to_ask)
@@ -118,9 +125,11 @@ class Server(object):
         Since we need fast loading we shouldn't download the full profile here.
         It will download the avatar if it isn't already in cache.
         """
+
         def get_result(result):
             def ret(result, metadata):
                 return metadata
+
             try:
                 pubkey = node_to_ask.signed_pubkey[64:]
                 verify_key = nacl.signing.VerifyKey(pubkey)
@@ -133,6 +142,7 @@ class Server(object):
                 return m
             except:
                 return None
+
         if node_to_ask.ip is None:
             return defer.succeed(None)
         d = self.protocol.callGetUserMetadata(node_to_ask)
@@ -144,6 +154,7 @@ class Server(object):
         is returned containing some metadata for each contract. The individual contracts
         should be fetched with a get_contract call.
         """
+
         def get_result(result):
             try:
                 pubkey = node_to_ask.signed_pubkey[64:]
@@ -154,6 +165,7 @@ class Server(object):
                 return l
             except:
                 return None
+
         if node_to_ask.ip is None:
             return defer.succeed(None)
         d = self.protocol.callGetListings(node_to_ask)
@@ -165,9 +177,11 @@ class Server(object):
         search results in a list view without downloading the entire contract.
         It will download the thumbnail image if it isn't already in cache.
         """
+
         def get_result(result):
             def ret(result, listing):
                 return listing
+
             try:
                 pubkey = node_to_ask.signed_pubkey[64:]
                 verify_key = nacl.signing.VerifyKey(pubkey)
@@ -181,15 +195,17 @@ class Server(object):
                 return l
             except:
                 return None
+
         if node_to_ask.ip is None:
             return defer.succeed(None)
         d = self.protocol.callGetContractMetadata(node_to_ask, contract_hash)
         return d.addCallback(get_result)
 
-    def cache(self, file):
+    @staticmethod
+    def cache(filename):
         """
         Saves the file to a cache folder if it doesn't already exist.
         """
         if not os.path.isfile(DATA_FOLDER + "cache/" + digest(file).encode("hex")):
             with open(DATA_FOLDER + "cache/" + digest(file).encode("hex"), 'w') as outfile:
-                outfile.write(file)
+                outfile.write(filename)
