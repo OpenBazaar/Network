@@ -443,19 +443,7 @@ class RPCCalls(jsonrpc.JSONRPC):
     def jsonrpc_getmoderators(self):
         start = time.time()
 
-        def parse_response(moderators):
-            for mod in moderators:
-                try:
-                    val = Value()
-                    val.ParseFromString(mod)
-
-                    node = Node()
-                    node.ParseFromString(val.serializedData)
-                    print node
-                except Exception as e:
-                    print 'malformed protobuf', e.message
-
-        self.kserver.get("moderators").addCallback(parse_response)
+        self.mserver.get_moderators()
         return "getting moderators..."
 
     def jsonrpc_getcontractmetadata(self, guid, contract_hash):
