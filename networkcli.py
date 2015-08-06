@@ -455,9 +455,6 @@ class RPCCalls(jsonrpc.JSONRPC):
                 except Exception as e:
                     print 'malformed protobuf', e.message
 
-        # value = self.kserver.node.getProto().SerializeToString()
-        # self.kserver.set("moderators", digest(value), value)
-
         self.kserver.get("moderators").addCallback(parse_response)
         return "getting moderators..."
 
