@@ -6,7 +6,7 @@ import nacl.signing
 
 from twisted.internet import defer
 from market.protocol import MarketProtocol
-from dht.utils import digest
+from dht.utils import digest, deferredDict
 from collections import OrderedDict
 from constants import DATA_FOLDER
 from protos import objects
@@ -179,7 +179,7 @@ class Server(object):
         """
 
         def parse_response(moderators):
-            moderators_list = []
+            moderators_list = {}
 
             for mod in moderators:
                 try:
@@ -189,22 +189,12 @@ class Server(object):
                     node = Node()
                     node.ParseFromString(val.serializedData)
 
-                    def get_online_profile(resp):
-                        def parse_moderator_data(profile):
-                            print profile
+                    moderators_list[node.guid] = self.get_profile(node)
 
-                        if resp is not None:
-                            d = self.get_profile(resp)
-                            d.addCallback(parse_moderator_data)
-
-                    node_to_check = self.kserver.resolve(node.guid)
-                    node_to_check.addCallback(get_online_profile)
-
-                    moderators_list.append(node)
                 except Exception as e:
                     print 'malformed protobuf', e.message
 
-            return moderators_list
+            return deferredDict(moderators_list)
 
         self.kserver.get("moderators").addCallback(parse_response)
 
