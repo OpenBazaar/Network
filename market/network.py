@@ -10,6 +10,7 @@ from dht.utils import digest
 from collections import OrderedDict
 from constants import DATA_FOLDER
 from protos import objects
+from protos.objects import Value, Node
 from binascii import hexlify, unhexlify
 
 
@@ -170,6 +171,42 @@ class Server(object):
             return defer.succeed(None)
         d = self.protocol.callGetListings(node_to_ask)
         return d.addCallback(get_result)
+
+    def get_moderators(self):
+        """
+        Retrieves moderator list from the dht. Each node is queried
+        to get metadata and ensure it's alive for usage.
+        """
+
+        def parse_response(moderators):
+            moderators_list = []
+
+            for mod in moderators:
+                try:
+                    val = Value()
+                    val.ParseFromString(mod)
+
+                    node = Node()
+                    node.ParseFromString(val.serializedData)
+
+                    def get_online_profile(resp):
+                        def parse_moderator_data(profile):
+                            print profile
+
+                        if resp is not None:
+                            d = self.get_profile(resp)
+                            d.addCallback(parse_moderator_data)
+
+                    node_to_check = self.kserver.resolve(node.guid)
+                    node_to_check.addCallback(get_online_profile)
+
+                    moderators_list.append(node)
+                except Exception as e:
+                    print 'malformed protobuf', e.message
+
+            return moderators_list
+
+        self.kserver.get("moderators").addCallback(parse_response)
 
     def get_contract_metadata(self, node_to_ask, contract_hash):
         """
