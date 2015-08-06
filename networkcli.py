@@ -10,6 +10,7 @@ from dht.utils import digest
 from txjsonrpc.netstring import jsonrpc
 from market.profile import Profile
 from protos import objects, countries
+from protos.objects import Value, Node
 from db.datastore import HashMap
 from market.contracts import Contract
 from collections import OrderedDict
@@ -48,6 +49,7 @@ commands:
     getprofile          fetches the profile from the given node.
     getusermetadata     fetches the metadata (shortened profile) for the node
     getlistings         fetches metadata about the store's listings
+    getmoderators       fetches moderators data from the dht
     setcontract         sets a contract in the filesystem and db
     setimage            maps an image hash to a filepath in the db
     setasmoderator      sets a node as a moderator
@@ -278,6 +280,15 @@ commands:
         d.addCallbacks(print_value, print_error)
         reactor.run()
 
+    def getmoderators(self):
+        parser = argparse.ArgumentParser(
+            description="Fetches moderator data from the dht",
+            usage='''usage:
+    networkcli.py getmoderators''')
+        d = proxy.callRemote('getmoderators')
+        d.addCallbacks(print_value, print_error)
+        reactor.run()
+
     def getcontractmetadata(self):
         parser = argparse.ArgumentParser(
             description="Fetches the metadata for the given contract. The thumbnail images will be saved in cache.",
@@ -451,6 +462,12 @@ class RPCCalls(jsonrpc.JSONRPC):
         d = self.kserver.resolve(unhexlify(guid))
         d.addCallback(get_node)
         return "getting listing metadata..."
+
+    def jsonrpc_getmoderators(self):
+        start = time.time()
+
+        self.mserver.get_moderators()
+        return "getting moderators..."
 
     def jsonrpc_getcontractmetadata(self, guid, contract_hash):
         start = time.time()
