@@ -5,6 +5,7 @@ import os
 import sys
 from twisted.internet import reactor
 from twisted.python import log, logfile
+from twisted.web.server import Site
 from guidutils.guid import GUID
 from dht.network import Server
 from dht.node import Node
@@ -12,6 +13,7 @@ from wireprotocol import OpenBazaarProtocol
 from constants import DATA_FOLDER
 from market import network
 from txjsonrpc.netstring import jsonrpc
+from restapi import OpenBazaarAPI
 from networkcli import RPCCalls
 
 # logging
@@ -61,5 +63,10 @@ reactor.listenUDP(port, protocol)
 # json-rpc server
 factory = jsonrpc.RPCFactory(RPCCalls(kserver, mserver, g))
 reactor.listenTCP(18465, factory, interface="127.0.0.1")
+
+# REST API endpoint
+api = OpenBazaarAPI()
+site = Site(api, timeout=None)
+reactor.listenTCP(18469, site, interface="127.0.0.1")
 
 reactor.run()
