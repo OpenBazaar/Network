@@ -1,36 +1,53 @@
 __author__ = 'chris'
 
-from zope.interface import Interface, Attribute
+import abc
+import collections
 
-class MessageProcessor(Interface):
+
+class MessageProcessor(collections.Iterable):
+
     """
-    This is an interface for processing messages coming off the wire. Classes that implement this interface should be
-    passed into 'OpenBazaarProtocol.register_processor' which will parse new messages to determine the message type
-    then route them to the correct processor.
+    This is an interface for processing messages coming off the wire.
+
+    Classes that implement this interface should be passed into
+    'OpenBazaarProtocol.register_processor' which will parse new
+    messages to determine the message type then route them to the
+    correct processor.
     """
 
-    multiplexer = Attribute("""The main `ConnectionMultiplexer` protocol.
-        We pass it in here so we can send datagrams from this class.""")
+    __metaclass__ = abc.ABCMeta
 
-    def receive_message(datagram, connection):
+    # The main `ConnectionMultiplexer` protocol.
+    # We store it here so we can directly send datagrams from this class.
+    multiplexer = None
+
+    # Sequence of commands (strings) that this `MessageProcessor` handles
+    commands = None
+
+    @abstractmethod
+    def receive_message(self, datagram, connection):
         """
-        Called by OpenBazaarProtocol when it receives a new message intended for this processor.
+        Called by OpenBazaarProtocol when it receives a new message
+        intended for this processor.
 
         Args:
-            datagram: The protobuf that came off the wire in unserialized format. Basic validity checks, such as
-                      minimum size and valid protobuf format have already been done.
+            datagram: The protobuf that came off the wire in
+                unserialized format. Basic validity checks, such as
+                minimum size and valid protobuf format have already
+                been done.
 
-            connection: the txrudp connection to the peer who sent the message. To respond directly to the peer call
-                      connection.send_message()
-        """
-
-    def connect_multiplexer(multiplexer):
-        """
-        Connect the main ConnectionMultiplexer to this class so we can send outgoing messages.
+            connection: The txrudp connection to the peer who sent the
+                message. To respond directly to the peer call
+                `connection.send_message()`.
         """
 
-    def __iter__():
+    @abstractmethod
+    def connect_multiplexer(self, multiplexer):
         """
-        OpenBazaarProtocol will use this to check which message types are handled by this processor.
-        :return: iter([list of enums])
+        Connect the main ConnectionMultiplexer to this class so we can
+        send outgoing messages.
         """
+
+    def __iter__(self):
+        """Return an iterator over the commands."""
+        return iter(self.commands)

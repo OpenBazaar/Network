@@ -1,11 +1,11 @@
 __author__ = 'chris'
-from zope.interface.verify import verifyObject
+
+import collections
 
 from txrudp.rudp import ConnectionMultiplexer
 from txrudp.connection import HandlerFactory, Handler
 from txrudp.crypto_connection import CryptoConnectionFactory
 
-from interfaces import MessageProcessor
 from protos.message import Message
 from log import Logger
 
@@ -19,15 +19,16 @@ class OpenBazaarProtocol(ConnectionMultiplexer):
                 ip_address: a `tuple` of the (ip address, port) of ths node.
         """
         self.ip_address = ip_address
-        self.processors = []
+        self.processors = set()
         self.factory = self.ConnHandlerFactory(self.processors)
+        self._dispatcher = collections.defaultdict(set)
         ConnectionMultiplexer.__init__(self, CryptoConnectionFactory(self.factory), self.ip_address[0])
 
     class ConnHandler(Handler):
 
-        def __init__(self, procssors):
+        def __init__(self, protocol):
             self.log = Logger(system=self)
-            self.processors = procssors
+            self._proto = protocol
             self.connection = None
 
         def receive_message(self, datagram):
@@ -37,9 +38,9 @@ class OpenBazaarProtocol(ConnectionMultiplexer):
             m = Message()
             try:
                 m.ParseFromString(datagram)
-                for processor in self.processors:
-                    if m.command in processor:
-                        processor.receive_message(datagram, self.connection)
+                for processor in self._proto.get_processors_for(m.command):
+                    processor.receive_message(datagram, self.connection)
+                    # NOTE: Maybe we should defer the actual processing via the reactor?
             except:
                 # If message isn't formatted property then ignore
                 self.log.warning("Received unknown message from %s, ignoring" % str(self.connection.dest_addr))
@@ -50,21 +51,50 @@ class OpenBazaarProtocol(ConnectionMultiplexer):
 
     class ConnHandlerFactory(HandlerFactory):
 
-        def __init__(self, processors):
-            self.processors = processors
+        def __init__(self, protocol):
+            self.protocol = protocol
 
         def make_new_handler(self, *args, **kwargs):
-            return OpenBazaarProtocol.ConnHandler(self.processors)
+            return OpenBazaarProtocol.ConnHandler(self.protocol)
 
     def register_processor(self, processor):
-        """Add a new class which implements the `MessageProcessor` interface."""
-        if verifyObject(MessageProcessor, processor):
-            self.processors.append(processor)
+        """
+        Add a new processor.
+
+        Also, populate the inverse index with the commands handled by
+        this processor
+
+        Args:
+            processor: An interfaces.MessageProcessor
+        """
+        self.processors.add(processor)
+        for command in processor:
+            self._dispatcher[command].add(processor)
 
     def unregister_processor(self, processor):
-        """Unregister the given processor."""
-        if processor in self.processors:
-            self.processors.remove(processor)
+        """
+        Remove the given processor.
+
+        Also, remove the processor from the inverse index.
+
+        Args:
+            processor: An interfaces.MessageProcessor
+        """
+        self.processors.discard(processor)
+        for command in processor:
+            self._dispatcher[command].discard(processor)
+
+    def get_processors_for(self, command):
+        """
+        Return registered processors for a given command.
+
+        Args:
+            command: str or unicode
+
+        Returns:
+            Iterator over qualified processors.
+        """
+        return self._dispatcher[command]
 
     def send_message(self, datagram, address):
         """
