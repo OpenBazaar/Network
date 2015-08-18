@@ -44,7 +44,7 @@ class DatastoreTest(unittest.TestCase):
         f = self.hm.get_file(self.test_hash)
         self.assertEqual(f, self.test_file)
 
-     def test_hashmapDelete(self):
+    def test_hashmapDelete(self):
         self.hm.insert(self.test_hash, self.test_file)
         f = self.hm.get_file(self.test_hash)
         self.assertEqual(f, self.test_file)

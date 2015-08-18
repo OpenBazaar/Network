@@ -24,6 +24,7 @@ class OpenBazaarProtocol(ConnectionMultiplexer):
     class ConnHandler(Handler):
 
         def __init__(self, processors, *args, **kwargs):
+            super(OpenBazaarProtocol.ConnHandler, self).__init__(*args, **kwargs)
             self.log = Logger(system=self)
             self.processors = processors
             self.connection = None
@@ -51,6 +52,7 @@ class OpenBazaarProtocol(ConnectionMultiplexer):
     class ConnHandlerFactory(HandlerFactory):
 
         def __init__(self, processors):
+            super(OpenBazaarProtocol.ConnHandlerFactory, self).__init__()
             self.processors = processors
 
         def make_new_handler(self, *args, **kwargs):
