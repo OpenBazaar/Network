@@ -1,13 +1,14 @@
 import unittest
 
 from db import datastore
-from protos.objects import Profile, Listings
+from protos.objects import Profile, Listings, Following, Metadata
 from protos.countries import CountryCode
 
 
 class DatastoreTest(unittest.TestCase):
     def setUp(self):
         datastore.DATABASE = ":memory:"
+
         self.test_hash = "87e0555568bf5c7e4debd6645fc3f41e88df6ca8"
         self.test_hash2 = "97e0555568bf5c7e4debd6645fc3f41e88df6ca8"
         self.test_file = "Contents of test.txt"
@@ -33,6 +34,7 @@ class DatastoreTest(unittest.TestCase):
         self.ps = datastore.ProfileStore()
         self.ls = datastore.ListingsStore()
         self.ks = datastore.KeyStore()
+        self.fd = datastore.FollowData()
 
     def tearDown(self):
         self.ks.delete_all_keys()
@@ -40,8 +42,15 @@ class DatastoreTest(unittest.TestCase):
     def test_hashmapInsert(self):
         self.hm.insert(self.test_hash, self.test_file)
         f = self.hm.get_file(self.test_hash)
-
         self.assertEqual(f, self.test_file)
+
+     def test_hashmapDelete(self):
+        self.hm.insert(self.test_hash, self.test_file)
+        f = self.hm.get_file(self.test_hash)
+        self.assertEqual(f, self.test_file)
+        self.hm.delete(self.test_hash)
+        v = self.hm.get_file(self.test_hash)
+        self.assertIsNone(v)
 
     def test_hashmapGetEmpty(self):
         f = self.hm.get_file('87e0555568bf5c7e4debd6645fc3f41e88df6ca9')
@@ -102,3 +111,27 @@ class DatastoreTest(unittest.TestCase):
     def test_getKeyFromEmptyTable(self):
         self.ks.delete_all_keys()
         self.assertEqual(None, self.ks.get_key("guid"))
+
+    def test_follow(self):
+        u = Following.User()
+        u.guid = '0000000000000000000000000000000000'
+        u.signed_pubkey = 'signed_pubkey'
+
+        m = Metadata()
+        m.name = 'Test User'
+        m.handle = '@TestUser'
+        m.avatar_hash = ''
+        m.nsfw = False
+        u.metadata.MergeFrom(m)
+
+        # Follow test user
+        self.fd.follow(u)
+
+        # Check for followers
+        followers = self.fd.get_following()
+        self.assertIsNotNone(followers)
+
+    def test_unfollow(self):
+        # Check for followers
+        followers = self.fd.get_following()
+        self.assertIsNotNone(followers)
