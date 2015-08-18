@@ -34,6 +34,9 @@ class DatastoreTest(unittest.TestCase):
         self.ls = datastore.ListingsStore()
         self.ks = datastore.KeyStore()
 
+    def tearDown(self):
+        self.ks.delete_all_keys()
+
     def test_hashmapInsert(self):
         self.hm.insert(self.test_hash, self.test_file)
         f = self.hm.get_file(self.test_hash)
