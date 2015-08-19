@@ -229,7 +229,10 @@ class FollowData(object):
         if not ret:
             return None
         else:
-            return ret[0][0]
+            if ret[0][0] == '':
+                return None
+            else:
+                return ret[0][0]
 
     def is_following(self, guid):
         f = Following()
