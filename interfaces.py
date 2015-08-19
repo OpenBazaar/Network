@@ -40,7 +40,7 @@ class NotificationListener(Interface):
     An interface for handling notifications sent to followers.
     """
 
-    def notify(message):
+    def notify(guid, message):
         """
         New notifications will be sent here. They will only show if this node is following the node
         which sent the notification.
@@ -51,13 +51,10 @@ class MessageListener(Interface):
     An interface for handling messages sent between nodes.
     """
 
-    def notify(sender_guid, encryption_pubkey, subject, message_type, message):
+    def notify(plaintext_message, signature):
         """
         New messages will be sent here if they decrypt and parse correctly.
         Args:
-            sender_guid: in raw bytes
-            encryption_pubkey: the encryption key to be used when responding to this message.
-            subject: a `string` which may be empty if no subject was included.
-            message_type: a `string` signifying the type of message (CHAT, DISPUTE, etc).
-            message: the `string` message.
+            plaintext_message: the protobuf object containing the message
+            signature: the signature covering the message.
         """

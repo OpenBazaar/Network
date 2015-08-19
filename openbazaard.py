@@ -10,16 +10,19 @@ import sys
 import dht.constants
 from twisted.internet import reactor
 from twisted.python import log, logfile
+from twisted.web.server import Site
+from twisted.web.static import File
 from keyutils.keys import KeyChain
 from dht.network import Server
 from dht.node import Node
 from wireprotocol import OpenBazaarProtocol
 from constants import DATA_FOLDER
-from market import network
 from txjsonrpc.netstring import jsonrpc
 from networkcli import RPCCalls
-from interfaces import MessageListener
-from zope.interface import implements
+from market import network
+from market.listeners import MessageListenerImpl, NotificationListenerImpl
+from ws import WSFactory, WSProtocol
+from autobahn.twisted.websocket import listenWS
 
 # logging
 logFile = logfile.LogFile.fromFullPath(DATA_FOLDER + "debug.log")
@@ -35,15 +38,15 @@ port = response[2]
 
 # key generation
 keys = KeyChain()
+print keys.guid.encode("hex")
+print keys.encryption_pubkey.encode("hex")
 
 def on_bootstrap_complete(resp):
-    class GetMyMessages(object):
-        implements(MessageListener)
-
-        @staticmethod
-        def notify(sender_guid, encryption_pubkey, subject, message_type, message):
-            print message
-    mserver.get_messages(GetMyMessages())
+    mlistener = MessageListenerImpl(ws_factory)
+    mserver.get_messages(mlistener)
+    mserver.protocol.add_listener(mlistener)
+    nlistener = NotificationListenerImpl(ws_factory)
+    mserver.protocol.add_listener(nlistener)
 
 protocol = OpenBazaarProtocol((ip_address, port))
 
@@ -73,5 +76,14 @@ reactor.listenUDP(port, protocol)
 # json-rpc server
 factory = jsonrpc.RPCFactory(RPCCalls(kserver, mserver, keys))
 reactor.listenTCP(18465, factory, interface="127.0.0.1")
+
+# web sockets
+ws_factory = WSFactory("ws://127.0.0.1:18466", mserver)
+ws_factory.protocol = WSProtocol
+ws_factory.setProtocolOptions(allowHixie76=True)
+listenWS(ws_factory)
+webdir = File(".")
+web = Site(webdir)
+reactor.listenTCP(9000, web)
 
 reactor.run()

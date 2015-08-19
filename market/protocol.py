@@ -17,6 +17,7 @@ from market.profile import Profile
 from protos.objects import Metadata, Listings, Followers, Plaintext_Message
 from binascii import hexlify
 from zope.interface.verify import verifyObject
+from zope.interface.exceptions import DoesNotImplement
 from interfaces import NotificationListener, MessageListener
 
 class MarketProtocol(RPCProtocol):
@@ -170,20 +171,28 @@ class MarketProtocol(RPCProtocol):
         else:
             return [ser, self.signing_key.sign(ser)[:64]]
 
-    def rpc_notify(self, sender, message):
+    def rpc_notify(self, sender, message, signature):
         if len(message) <= 140 and FollowData().is_following(sender.id):
+            try:
+                verify_key = nacl.signing.VerifyKey(sender.signed_pubkey[64:])
+                verify_key.verify(message, signature)
+            except Exception:
+                return ["False"]
             self.log.info("Received a notification from %s" % sender)
             self.router.addContact(sender)
             for listener in self.listeners:
-                if verifyObject(NotificationListener, listener):
-                    listener.notify(message)
+                try:
+                    verifyObject(NotificationListener, listener)
+                    listener.notify(sender.id, message)
+                except DoesNotImplement:
+                    pass
             return ["True"]
         else:
             return ["False"]
 
     def rpc_message(self, sender, pubkey, encrypted):
-        box = Box(PrivateKey(self.signing_key.encode(nacl.encoding.RawEncoder)), PublicKey(pubkey))
         try:
+            box = Box(PrivateKey(self.signing_key.encode(nacl.encoding.RawEncoder)), PublicKey(pubkey))
             plaintext = box.decrypt(encrypted)
             p = Plaintext_Message()
             p.ParseFromString(plaintext)
@@ -198,9 +207,11 @@ class MarketProtocol(RPCProtocol):
             self.log.info("Received a message from %s" % sender)
             self.router.addContact(sender)
             for listener in self.listeners:
-                if verifyObject(MessageListener, listener):
-                    listener.notify(p.sender_guid, p.encryption_pubkey, p.subject,
-                                    Plaintext_Message.Type.Name(p.type), p.message)
+                try:
+                    verifyObject(MessageListener, listener)
+                    listener.notify(p, signature)
+                except DoesNotImplement:
+                    pass
             return ["True"]
         except Exception:
             self.log.error("Received invalid message from %s" % sender)
@@ -256,9 +267,9 @@ class MarketProtocol(RPCProtocol):
         d = self.get_following(address)
         return d.addCallback(self.handleCallResponse, nodeToAsk)
 
-    def callNotify(self, nodeToAsk, message):
+    def callNotify(self, nodeToAsk, message, signature):
         address = (nodeToAsk.ip, nodeToAsk.port)
-        d = self.notify(address, message)
+        d = self.notify(address, message, signature)
         return d.addCallback(self.handleCallResponse, nodeToAsk)
 
     def callMessage(self, nodeToAsk, ehemeral_pubkey, ciphertext):
