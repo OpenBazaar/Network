@@ -45,7 +45,8 @@ class Contract(object):
                     file_path = DATA_FOLDER + "cache/" + hexlify(hash_value)
                 with open(file_path, 'r') as filename:
                     self.contract = json.load(filename, object_pairs_hook=OrderedDict)
-            except Exception:
+            except Exception as e:
+                print e
                 self.contract = {}
         else:
             self.contract = {}
@@ -413,7 +414,8 @@ class Contract(object):
         # remove the pointer to the contract from the HashMap
         h.delete(contract_hash)
 
-    def save_contract_to_file(self, file_path, data):
+    @staticmethod
+    def save_contract_to_file(file_path, data):
         try:
             file_dir = os.path.dirname(file_path)
             # Race condition possible, but unlikely
