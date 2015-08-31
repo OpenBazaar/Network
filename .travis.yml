@@ -9,7 +9,7 @@ install:
     - pip install -r test_requirements.txt
 
 script:
-    - python keyutils/setup.py install
+    - cd keyutils; python setup.py install
     - make -s
 
 after_success:
