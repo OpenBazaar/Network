@@ -1,5 +1,6 @@
 __author__ = 'Brian Hoffman'
 
+import binascii
 import unittest
 
 from market import contracts
@@ -14,12 +15,24 @@ class ContractTest(unittest.TestCase):
         self.ps = datastore.ProfileStore()
 
         self.test_contract_filename = '00000000000000000000.json'
+        self.guid_privkey = binascii.unhexlify("76e0cfba9b4900abfdfbdfc08dd4ba5dd42234d3abbdaba953239466fa677eab")
+        self.guid_pubkey = binascii.unhexlify(
+            "7e8ac43a2873cc0de24692dad229a5d196b6d173258388e95a8e25c14112f9bace57458a609a9d069282d5de0ee36f0a"
+            "885bff349283e977ccd67b1a9c8eba00be6bfb797453e42649ea14090b42d71a6cca1b6fbaa3d4a85095ed8c80e8a677")
+
+        self.btc_privkey = "xprv9s21ZrQH143K3t2rGxe4LjSzTb7t7Fa2SzTKkts7bSTsoTZjv27X2GVvUafi7YQUPwkMucja" \
+                           "Tpj3ktbsmVY2gfWqaNvXswZrMTwTJ3xfoot"
+        self.btc_pubkey = "xpub661MyMwAqRbcGN7KNzB4hsPj1cxNWiHspDNvZHGj9mzrgFttTZRma4pQKtR5Fub82xWp" \
+                          "QvQZzZ8JMazWFgvGAN3grGqGKEC7bTWMetR2VJn"
+
+        self.ks = datastore.KeyStore()
+        self.ks.set_key('guid', self.guid_privkey, self.guid_pubkey)
+        self.ks.set_key('bitcoin', self.btc_privkey, self.btc_privkey)
 
     def tearDown(self):
         os.remove("test.db")
 
     def test_create_contract(self):
-
         file_path = contracts.Contract.generate_file_path('00000000000000000000')
 
         if os.path.isfile(file_path):
