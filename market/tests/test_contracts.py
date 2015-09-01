@@ -61,7 +61,7 @@ class ContractTest(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.file_path))
 
         cid = c.get_contract_id().encode('hex')
-        self.assertEqual(cid, 'ffbb1d1d341c8297be4e5c8671b5927e26a65465')
+        self.assertEqual(cid, '5e7c1bd85b6b9a66a616d6715febfbc189fde596')
 
         c.delete(True)
         self.assertFalse(os.path.isfile(self.file_path))
