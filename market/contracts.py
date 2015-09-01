@@ -384,6 +384,7 @@ class Contract(object):
 
     def get_contract_id(self):
         contract = json.dumps(self.contract, indent=4)
+        print contract
         return digest(contract)
 
     def delete(self, delete_images=True):
