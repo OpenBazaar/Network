@@ -183,8 +183,12 @@ class Contract(object):
             for image in images:
                 hash_value = digest(image).encode("hex")
                 self.contract["vendor_offer"]["listing"]["item"]["image_hashes"].append(hash_value)
+
+                if not os.path.exists(DATA_FOLDER + "store/media/"):
+                    os.makedirs(DATA_FOLDER + "store/media/")
                 with open(DATA_FOLDER + "store/media/" + hash_value, 'w') as outfile:
                     outfile.write(image)
+
                 HashMap().insert(digest(image), DATA_FOLDER + "store/media/" + hash_value)
         if terms_conditions is not None or returns is not None:
             self.contract["vendor_offer"]["listing"]["policy"] = {}
@@ -435,6 +439,15 @@ class Contract(object):
         file_name = re.sub(r"\s+", '_', file_name)
 
         return DATA_FOLDER + "store/listings/contracts/" + file_name + ".json"
+
+    @staticmethod
+    def generate_media_file_path(media_title):
+        # get the contract title to use as the file name and format it
+        file_name = str(media_title)
+        file_name = re.sub(r"[^\w\s]", '', file_name)
+        file_name = re.sub(r"\s+", '_', file_name)
+
+        return DATA_FOLDER + "store/media/" + file_name
 
     def save(self):
         """

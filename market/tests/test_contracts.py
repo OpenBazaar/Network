@@ -25,6 +25,7 @@ class ContractTest(unittest.TestCase):
         self.btc_pubkey = "xpub661MyMwAqRbcGN7KNzB4hsPj1cxNWiHspDNvZHGj9mzrgFttTZRma4pQKtR5Fub82xWp" \
                           "QvQZzZ8JMazWFgvGAN3grGqGKEC7bTWMetR2VJn"
 
+        self.test_image = 'ff'
         self.ks = datastore.KeyStore()
         self.ks.set_key('guid', self.guid_privkey, self.guid_pubkey)
         self.ks.set_key('bitcoin', self.btc_privkey, self.btc_privkey)
@@ -33,11 +34,11 @@ class ContractTest(unittest.TestCase):
         os.remove("test.db")
 
     def test_create_contract(self):
-        file_path = contracts.Contract.generate_file_path('00000000000000000000')
+        self.file_path = contracts.Contract.generate_file_path('00000000000000000000')
 
-        if os.path.isfile(file_path):
-            os.remove(file_path)
-        self.assertFalse(os.path.isfile(file_path))
+        if os.path.isfile(self.file_path):
+            os.remove(self.file_path)
+        self.assertFalse(os.path.isfile(self.file_path))
 
         c = contracts.Contract()
         c.create(
@@ -45,11 +46,25 @@ class ContractTest(unittest.TestCase):
             metadata_category='physical good',
             title='00000000000000000000',
             description='This is a test contract.',
-            currency_code='USD',
+            currency_code='BTC',
             price='100.00',
             process_time='1994-11-05T13:15:30Z',
             nsfw=False,
             shipping_origin='ALL',
-            shipping_regions=[])
+            shipping_regions=[],
+            condition='Used',
+            keywords=['test'],
+            free_shipping=False,
+            shipping_currency_code='BTC',
+            images=[self.test_image])
 
-        self.assertTrue(os.path.isfile(file_path))
+        self.assertTrue(os.path.isfile(self.file_path))
+
+        cid = c.get_contract_id().encode('hex')
+        self.assertEqual(cid, 'ffbb1d1d341c8297be4e5c8671b5927e26a65465')
+
+        c.delete(True)
+        self.assertFalse(os.path.isfile(self.file_path))
+
+        img_path = contracts.Contract.generate_media_file_path('5ba31e0f523ab6bdc58a013e210d8317ab6ad8d9')
+        self.assertFalse(os.path.isfile(img_path))
