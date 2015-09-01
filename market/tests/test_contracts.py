@@ -28,7 +28,7 @@ class ContractTest(unittest.TestCase):
         self.test_image = 'ff'
         self.ks = datastore.KeyStore()
         self.ks.set_key('guid', self.guid_privkey, self.guid_pubkey)
-        self.ks.set_key('bitcoin', self.btc_privkey, self.btc_privkey)
+        self.ks.set_key('bitcoin', self.btc_privkey, self.btc_pubkey)
 
     def tearDown(self):
         os.remove("test.db")
