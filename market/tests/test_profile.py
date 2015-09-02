@@ -118,6 +118,8 @@ class ProfileTest(unittest.TestCase):
             self.test_pgp_sig,
             self.test_guid)
 
+        self.assertTrue(r)
+
         p = self.p.get()
         self.assertEqual(p.pgp_key.public_key, self.test_pgp_pubkey)
         self.assertEqual(p.pgp_key.signature, self.test_pgp_sig)
