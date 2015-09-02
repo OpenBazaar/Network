@@ -31,6 +31,7 @@ class Contract(object):
         Alternatively, pass in no parameters if the intent is to create a new
         contract.
 
+        :rtype : object
         Args:
             contract: an `OrderedDict` containing a filled out json contract
             hash: a hash (in raw bytes) of a contract
@@ -44,7 +45,8 @@ class Contract(object):
                     file_path = DATA_FOLDER + "cache/" + hexlify(hash_value)
                 with open(file_path, 'r') as filename:
                     self.contract = json.load(filename, object_pairs_hook=OrderedDict)
-            except Exception:
+            except Exception as e:
+                print e
                 self.contract = {}
         else:
             self.contract = {}
@@ -181,8 +183,12 @@ class Contract(object):
             for image in images:
                 hash_value = digest(image).encode("hex")
                 self.contract["vendor_offer"]["listing"]["item"]["image_hashes"].append(hash_value)
+
+                if not os.path.exists(DATA_FOLDER + "store/media/"):
+                    os.makedirs(DATA_FOLDER + "store/media/")
                 with open(DATA_FOLDER + "store/media/" + hash_value, 'w') as outfile:
                     outfile.write(image)
+
                 HashMap().insert(digest(image), DATA_FOLDER + "store/media/" + hash_value)
         if terms_conditions is not None or returns is not None:
             self.contract["vendor_offer"]["listing"]["policy"] = {}
@@ -412,6 +418,37 @@ class Contract(object):
         # remove the pointer to the contract from the HashMap
         h.delete(contract_hash)
 
+    @staticmethod
+    def save_contract_to_file(file_path, data):
+        try:
+            file_dir = os.path.dirname(file_path)
+            # Race condition possible, but unlikely
+            if not os.path.exists(file_dir):
+                os.makedirs(file_dir)
+
+            with open(file_path, 'w') as outfile:
+                outfile.write(json.dumps(data, indent=4))
+        except IOError as e:
+            print 'Cannot save file: ', e
+
+    @staticmethod
+    def generate_file_path(contract_title):
+        # get the contract title to use as the file name and format it
+        file_name = str(contract_title)
+        file_name = re.sub(r"[^\w\s]", '', file_name)
+        file_name = re.sub(r"\s+", '_', file_name)
+
+        return DATA_FOLDER + "store/listings/contracts/" + file_name + ".json"
+
+    @staticmethod
+    def generate_media_file_path(media_title):
+        # get the contract title to use as the file name and format it
+        file_name = str(media_title)
+        file_name = re.sub(r"[^\w\s]", '', file_name)
+        file_name = re.sub(r"\s+", '_', file_name)
+
+        return DATA_FOLDER + "store/media/" + file_name
+
     def save(self):
         """
         Saves the json contract into the OpenBazaar/store/listings/contracts/ directory.
@@ -422,25 +459,22 @@ class Contract(object):
         Additionally, the contract metadata (sent in response to the GET_LISTINGS query)
         is saved in the db for fast access.
         """
-        # get the contract title to use as the file name and format it
-        file_name = str(self.contract["vendor_offer"]["listing"]["item"]["title"][:100])
-        file_name = re.sub(r"[^\w\s]", '', file_name)
-        file_name = re.sub(r"\s+", '_', file_name)
+        file_path = self.generate_file_path(self.contract["vendor_offer"]["listing"]["item"]["title"][:100])
 
-        # save the json contract to the file system
-        file_path = DATA_FOLDER + "store/listings/contracts/" + file_name + ".json"
-        with open(file_path, 'w') as outfile:
-            outfile.write(json.dumps(self.contract, indent=4))
+        self.save_contract_to_file(file_path, self.contract)
 
         # Create a `ListingMetadata` protobuf object using data from the full contract
         listings = Listings()
         data = listings.ListingMetadata()
         data.contract_hash = digest(json.dumps(self.contract, indent=4))
         vendor_item = self.contract["vendor_offer"]["listing"]["item"]
+
         data.title = vendor_item["title"]
         if "image_hashes" in vendor_item:
             data.thumbnail_hash = unhexlify(vendor_item["image_hashes"][0])
-        data.category = vendor_item["category"]
+
+        if 'category' in vendor_item:
+            data.category = vendor_item["category"]
         if "bitcoin" not in vendor_item["price_per_unit"]:
             data.price = float(vendor_item["price_per_unit"]["fiat"]["price"])
             data.currency_code = vendor_item["price_per_unit"]["fiat"][
@@ -452,8 +486,11 @@ class Contract(object):
         if "shipping" not in self.contract["vendor_offer"]["listing"]:
             data.origin = CountryCode.Value("NA")
         else:
-            data.origin = CountryCode.Value(
-                self.contract["vendor_offer"]["listing"]["shipping"]["shipping_origin"].upper())
+            country_code = self.contract["vendor_offer"]["listing"]["shipping"]["shipping_origin"].upper()
+            if country_code:
+                data.origin = CountryCode.Value(country_code)
+            else:
+                data.origin = CountryCode.Value("NA")
             for region in self.contract["vendor_offer"]["listing"]["shipping"]["shipping_regions"]:
                 data.ships_to.append(CountryCode.Value(region.upper()))
 
