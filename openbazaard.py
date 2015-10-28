@@ -101,7 +101,7 @@ def run(*args):
     reactor.listenUDP(port, protocol)
 
     # websockets api
-    ws_factory = WSFactory("ws://127.0.0.1:18466", mserver, kserver)
+    ws_factory = WSFactory("ws://0.0.0.0:18466", mserver, kserver)
     ws_factory.protocol = WSProtocol
     ws_factory.setProtocolOptions(allowHixie76=True)
     listenWS(ws_factory)
@@ -181,9 +181,9 @@ commands:
             parser.add_argument('-l', '--loglevel', default="info",
                                 help="set the logging level [debug, info, warning, error, critical]")
             parser.add_argument('-p', '--port', help="set the network port")
-            parser.add_argument('-r', '--restallowip', default="127.0.0.1",
+            parser.add_argument('-r', '--restallowip', default="0.0.0.0",
                                 help="bind the rest api server to this ip")
-            parser.add_argument('-w', '--wsallowip', default="127.0.0.1",
+            parser.add_argument('-w', '--wsallowip', default="0.0.0.0",
                                 help="bind the websocket server to this ip")
             args = parser.parse_args(sys.argv[2:])
             OKBLUE = '\033[94m'
