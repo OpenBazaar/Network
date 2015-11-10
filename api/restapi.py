@@ -18,6 +18,7 @@ from protos.countries import CountryCode
 from protos import objects
 from keyutils.keys import KeyChain
 from dht.utils import digest
+from dht.utils import resizeImage
 from market.profile import Profile
 from market.contracts import Contract
 from net.upnp import PortMapper
@@ -619,6 +620,7 @@ class OpenBazaarAPI(APIResource):
             ret = []
             if "image" in request.args:
                 for image in request.args["image"]:
+                    image = resizeImage(image,(1920,1080))
                     img = image.decode('base64')
                     hash_value = digest(img).encode("hex")
                     with open(DATA_FOLDER + "store/media/" + hash_value, 'wb') as outfile:
@@ -626,14 +628,16 @@ class OpenBazaarAPI(APIResource):
                     self.db.HashMap().insert(hash_value, DATA_FOLDER + "store/media/" + hash_value)
                     ret.append(hash_value)
             elif "avatar" in request.args:
-                avi = request.args["avatar"][0].decode("base64")
+                avatarImg = resizeImage(request.args["avatar"][0],(128,128)
+                avi = avatarImg.decode("base64")
                 hash_value = digest(avi).encode("hex")
                 with open(DATA_FOLDER + "store/avatar", 'wb') as outfile:
                     outfile.write(avi)
                 self.db.HashMap().insert(hash_value, DATA_FOLDER + "store/avatar")
                 ret.append(hash_value)
             elif "header" in request.args:
-                hdr = request.args["header"][0].decode("base64")
+                headerImg = resizeImage(request.args["header"][0],(1920,400)
+                hdr = headerImg.decode("base64")
                 hash_value = digest(hdr).encode("hex")
                 with open(DATA_FOLDER + "store/header", 'wb') as outfile:
                     outfile.write(hdr)
