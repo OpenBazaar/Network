@@ -20,6 +20,7 @@ from dht.utils import digest
 from market.profile import Profile
 from market.contracts import Contract
 from net.upnp import PortMapper
+import db.backuptool
 
 DEFAULT_RECORDS_COUNT = 20
 DEFAULT_RECORDS_OFFSET = 0
@@ -796,5 +797,14 @@ class OpenBazaarAPI(APIResource):
             request.finish()
             return server.NOT_DONE_YET
 
+    @POST('^/api/v1/backup_files')
+    def backup_files(self, request):
+        """Archives OpenBazaar files in a single tar archive."""
+        output_name = request.args["output_name"][0]
+        return db.backuptool.backupfiles(output_name)
 
-
+    @POST('^/api/v1/restore_files')
+    def restore_files(self, request):
+        """Restores files of given archive to OpenBazaar folder."""
+        input_file = request.args["input_file"][0]
+        return db.backuptool.restorefiles(input_file)
