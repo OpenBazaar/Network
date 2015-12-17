@@ -12,3 +12,4 @@ python-libbitcoinclient==0.3.0
 requests==2.7.0
 pyopenssl==0.15.1
 miniupnpc==1.9
+pysqlite==2.8.1
