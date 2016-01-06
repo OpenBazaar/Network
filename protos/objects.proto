@@ -12,20 +12,20 @@ import "countries.proto";
 //An object containing information about the node.
 //Some fields are optional as they aren't needed in all situations.
 message Node {
-	required bytes guid            = 1;
-	required bytes signedPublicKey = 2; // <64 byte signature><32 byte public key>
-	optional string ip             = 3;
-	optional uint32 port           = 4;
-	optional bool vendor           = 5 [default = false];
+    required bytes guid            = 1;
+    required bytes signedPublicKey = 2; // <64 byte signature><32 byte public key>
+    optional string ip             = 3;
+    optional uint32 port           = 4;
+    optional bool vendor           = 5 [default = false];
 }
 
 //The value returned by a FIND_VALUE rpc call
 //Typically a list of these will be returned for any given keyword.
 message Value {
     optional bytes keyword        = 1;
-	required bytes valueKey       = 2;
-	required bytes serializedData = 3;
-	required uint32 ttl           = 4;
+    required bytes valueKey       = 2;
+    required bytes serializedData = 3;
+    required uint32 ttl           = 4;
 }
 
 //A list of these is sent in an INV packet
@@ -61,23 +61,23 @@ message Profile {
         optional bytes avatar_hash        = 23;
         optional bytes header_hash        = 24;
 
-	// Social media account for the profile
+    // Social media account for the profile
     message SocialAccount {
-    	required SocialType type  = 1;
-    	required string username  = 2;
-    	optional string proof_url = 3;
+        required SocialType type  = 1;
+        required string username  = 2;
+        optional string proof_url = 3;
 
-    	enum SocialType {
-			FACEBOOK  = 1;
-			TWITTER   = 2;
-			INSTAGRAM = 3;
-			SNAPCHAT  = 4;
-    	}
+        enum SocialType {
+            FACEBOOK  = 1;
+            TWITTER   = 2;
+            INSTAGRAM = 3;
+            SNAPCHAT  = 4;
+        }
     }
 
     message PublicKey {
-    	required bytes public_key = 1;
-    	required bytes signature  = 2;
+        required bytes public_key = 1;
+        required bytes signature  = 2;
     }
 }
 

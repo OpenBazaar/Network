@@ -87,7 +87,7 @@ class Database(object):
     avatar BLOB, fee FLOAT)''')
 
         cursor.execute('''CREATE TABLE purchases(id TEXT PRIMARY KEY, title TEXT, description TEXT,
-timestamp INTEGER, btc FLOAT, address TEXT, status INTEGER, outpoint BLOB, thumbnail BLOB, seller TEXT,
+timestamp INTEGER, btc FLOAT, address TEXT, status INTEGER, outpoint BLOB, thumbnail BLOB, vendor TEXT,
 proofSig BLOB, contract_type TEXT)''')
 
         cursor.execute('''CREATE TABLE sales(id TEXT PRIMARY KEY, title TEXT, description TEXT,
@@ -519,13 +519,13 @@ FROM notifications''')
             self.db.text_factory = str
 
         def new_purchase(self, order_id, title, description, timestamp, btc,
-                         address, status, thumbnail, seller, proofSig, contract_type):
+                         address, status, thumbnail, vendor, proofSig, contract_type):
             cursor = self.db.cursor()
             try:
                 cursor.execute('''INSERT OR REPLACE INTO purchases(id, title, description, timestamp, btc,
-address, status, thumbnail, seller, proofSig, contract_type) VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+address, status, thumbnail, vendor, proofSig, contract_type) VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
                                (order_id, title, description, timestamp, btc, address,
-                                status, thumbnail, seller, proofSig, contract_type))
+                                status, thumbnail, vendor, proofSig, contract_type))
             except Exception as e:
                 print e.message
             self.db.commit()
@@ -533,7 +533,7 @@ address, status, thumbnail, seller, proofSig, contract_type) VALUES (?,?,?,?,?,?
         def get_purchase(self, order_id):
             cursor = self.db.cursor()
             cursor.execute('''SELECT id, title, description, timestamp, btc, address, status,
-     thumbnail, seller, contract_type, proofSig FROM purchases WHERE id=?''', (order_id,))
+     thumbnail, vendor, contract_type, proofSig FROM purchases WHERE id=?''', (order_id,))
             ret = cursor.fetchall()
             if not ret:
                 return None
@@ -548,7 +548,7 @@ address, status, thumbnail, seller, proofSig, contract_type) VALUES (?,?,?,?,?,?
         def get_all(self):
             cursor = self.db.cursor()
             cursor.execute('''SELECT id, title, description, timestamp, btc, status,
-     thumbnail, seller, contract_type FROM purchases ''')
+     thumbnail, vendor, contract_type FROM purchases ''')
             return cursor.fetchall()
 
         def get_unfunded(self):
