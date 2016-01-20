@@ -13,93 +13,13 @@ class Database(object):
 
     # pylint: disable=W0601
     DATABASE = None
-
+    
     def __init__(self, testnet=False, filepath=None):
         global DATABASE
-        self.TESTNET = testnet
-        if testnet:
-            DATABASE = DATA_FOLDER + "OB-Testnet.db"
-        else:
-            DATABASE = DATA_FOLDER + "OB-Mainnet.db"
-        self.DATABASE = DATABASE
-        if filepath:
-            DATABASE = filepath
-        if not os.path.exists(DATA_FOLDER + "cache/"):
-            os.makedirs(DATA_FOLDER + "cache/")
-        if not os.path.exists(DATA_FOLDER + "store/contracts/listings/"):
-            os.makedirs(DATA_FOLDER + "store/contracts/listings/")
-        if not os.path.exists(DATA_FOLDER + "store/contracts/in progress/"):
-            os.makedirs(DATA_FOLDER + "store/contracts/in progress/")
-        if not os.path.exists(DATA_FOLDER + "store/contracts/unfunded/"):
-            os.makedirs(DATA_FOLDER + "store/contracts/unfunded/")
-        if not os.path.exists(DATA_FOLDER + "store/contracts/trade receipts/"):
-            os.makedirs(DATA_FOLDER + "store/contracts/trade receipts/")
-        if not os.path.exists(DATA_FOLDER + "store/media/"):
-            os.makedirs(DATA_FOLDER + "store/media/")
-        if not os.path.exists(DATA_FOLDER + "purchases/in progress/"):
-            os.makedirs(DATA_FOLDER + "purchases/in progress/")
-        if not os.path.exists(DATA_FOLDER + "purchases/unfunded/"):
-            os.makedirs(DATA_FOLDER + "purchases/unfunded/")
-        if not os.path.exists(DATA_FOLDER + "purchases/trade receipts/"):
-            os.makedirs(DATA_FOLDER + "purchases/trade receipts/")
-        if not os.path.isfile(DATABASE):
-            self.create_database()
-            if os.path.exists(DATA_FOLDER + "cache.pickle"):
-                os.remove(DATA_FOLDER + "cache.pickle")
-
-    @staticmethod
-    def create_database(filepath=None):
-        if filepath is None:
-            db = lite.connect(DATABASE)
-        else:
-            db = lite.connect(filepath)
-
-        cursor = db.cursor()
-        cursor.execute('''PRAGMA user_version = 0''')
-        cursor.execute('''CREATE TABLE hashmap(hash TEXT PRIMARY KEY, filepath TEXT)''')
-
-        cursor.execute('''CREATE TABLE profile(id INTEGER PRIMARY KEY, serializedUserInfo BLOB)''')
-
-        cursor.execute('''CREATE TABLE listings(id INTEGER PRIMARY KEY, serializedListings BLOB)''')
-
-        cursor.execute('''CREATE TABLE keys(type TEXT PRIMARY KEY, privkey BLOB, pubkey BLOB)''')
-
-        cursor.execute('''CREATE TABLE followers(id INTEGER PRIMARY KEY, serializedFollowers BLOB)''')
-
-        cursor.execute('''CREATE TABLE following(id INTEGER PRIMARY KEY, serializedFollowing BLOB)''')
-
-        cursor.execute('''CREATE TABLE messages(guid TEXT, handle TEXT, signedPubkey BLOB,
-    encryptionPubkey BLOB, subject TEXT, messageType TEXT, message TEXT, timestamp INTEGER,
-    avatarHash BLOB, signature BLOB, outgoing INTEGER, read INTEGER)''')
-        cursor.execute('''CREATE INDEX index_guid ON messages(guid);''')
-        cursor.execute('''CREATE INDEX index_messages_read ON messages(read);''')
-
-        cursor.execute('''CREATE TABLE notifications(id TEXT PRIMARY KEY, guid BLOB, handle TEXT, type TEXT,
-    orderId TEXT, title TEXT, timestamp INTEGER, imageHash BLOB, read INTEGER)''')
-
-        cursor.execute('''CREATE TABLE broadcasts(id TEXT PRIMARY KEY, guid BLOB, handle TEXT, message TEXT,
-    timestamp INTEGER, avatarHash BLOB)''')
-
-        cursor.execute('''CREATE TABLE vendors(guid TEXT PRIMARY KEY, serializedNode BLOB)''')
-
-        cursor.execute('''CREATE TABLE moderators(guid TEXT PRIMARY KEY, signedPubkey BLOB, encryptionKey BLOB,
-    encryptionSignature BLOB, bitcoinKey BLOB, bitcoinSignature BLOB, handle TEXT, name TEXT, description TEXT,
-    avatar BLOB, fee FLOAT)''')
-
-        cursor.execute('''CREATE TABLE purchases(id TEXT PRIMARY KEY, title TEXT, description TEXT,
-timestamp INTEGER, btc FLOAT, address TEXT, status INTEGER, outpoint BLOB, thumbnail BLOB, vendor TEXT,
-proofSig BLOB, contractType TEXT)''')
-
-        cursor.execute('''CREATE TABLE sales(id TEXT PRIMARY KEY, title TEXT, description TEXT,
-timestamp INTEGER, btc REAL, address TEXT, status INTEGER, thumbnail BLOB, outpoint BLOB, buyer TEXT,
-paymentTX TEXT, contractType TEXT)''')
-
-        cursor.execute('''CREATE TABLE settings(id INTEGER PRIMARY KEY, refundAddress TEXT, currencyCode TEXT,
-country TEXT, language TEXT, timeZone TEXT, notifications INTEGER, shippingAddresses BLOB, blocked BLOB,
-libbitcoinServer TEXT, SSL INTEGER, seed TEXT, termsConditions TEXT, refundPolicy TEXT, moderatorList BLOB)''')
-
-        db.commit()
-        return db
+        
+        DATABASE = _database_path(testnet, filepath)
+        _initialize_database(DATABASE)
+        _initialize_datafolder_tree()
 
     class HashMap(object):
         """
@@ -724,3 +644,109 @@ termsConditions, refundPolicy, moderatorList) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,
             cursor = self.db.cursor()
             cursor.execute('''SELECT * FROM settings WHERE id=1''')
             return cursor.fetchone()
+
+
+
+def _database_path(testnet, filepath):
+    '''
+    Get database pathname.
+
+    Args:
+      testnet: Boolean
+      filename: If provided, overrides testnet
+    '''
+    path = ''
+    
+    if filepath:
+        path = filepath
+    elif testnet:
+        path = DATA_FOLDER + "OB-Testnet.db"
+    else:
+        path = DATA_FOLDER + "OB-Mainnet.db"
+
+    return path
+
+
+def _initialize_database(database):
+    '''
+    Create database, if not present, and clear cache.
+    '''
+    if not database:
+        raise RuntimeError('attempted to initialize empty path')
+    
+    if not os.path.isfile(database):
+        _create_database(database)
+        if os.path.exists(DATA_FOLDER + "cache.pickle"):
+            os.remove(DATA_FOLDER + "cache.pickle")
+            
+
+def _initialize_datafolder_tree():
+    '''
+    Creates, if not present, directory tree in DATA_FOLDER.
+    '''
+    directories = [
+        'cache/',
+        'store/contracts/listings/',
+        'store/contracts/in progress/',
+        'store/contracts/unfunded/',
+        'store/contracts/trade receipts/',
+        'store/media/',
+        'purchases/in progress/',
+        'purchases/unfunded/',
+        'purchases/trade receipts/',]
+    
+    for directory in directories:
+        if not os.path.exists(DATA_FOLDER + directory):
+            os.makedirs(DATA_FOLDER + directory)
+
+def _create_database(database):
+    db = lite.connect(database)
+    cursor = db.cursor()
+
+    cursor.execute('''PRAGMA user_version = 0''')
+    
+    cursor.execute('''CREATE TABLE hashmap(hash TEXT PRIMARY KEY, filepath TEXT)''')
+    
+    cursor.execute('''CREATE TABLE profile(id INTEGER PRIMARY KEY, serializedUserInfo BLOB)''')
+    
+    cursor.execute('''CREATE TABLE listings(id INTEGER PRIMARY KEY, serializedListings BLOB)''')
+    
+    cursor.execute('''CREATE TABLE keys(type TEXT PRIMARY KEY, privkey BLOB, pubkey BLOB)''')
+    
+    cursor.execute('''CREATE TABLE followers(id INTEGER PRIMARY KEY, serializedFollowers BLOB)''')
+    
+    cursor.execute('''CREATE TABLE following(id INTEGER PRIMARY KEY, serializedFollowing BLOB)''')
+    
+    cursor.execute('''CREATE TABLE messages(guid TEXT, handle TEXT, signedPubkey BLOB,
+    encryptionPubkey BLOB, subject TEXT, messageType TEXT, message TEXT, timestamp INTEGER,
+    avatarHash BLOB, signature BLOB, outgoing INTEGER, read INTEGER)''')
+
+    cursor.execute('''CREATE INDEX index_guid ON messages(guid);''')
+
+    cursor.execute('''CREATE INDEX index_messages_read ON messages(read);''')
+    
+    cursor.execute('''CREATE TABLE notifications(id TEXT PRIMARY KEY, guid BLOB, handle TEXT, type TEXT,
+    orderId TEXT, title TEXT, timestamp INTEGER, imageHash BLOB, read INTEGER)''')
+    
+    cursor.execute('''CREATE TABLE broadcasts(id TEXT PRIMARY KEY, guid BLOB, handle TEXT, message TEXT,
+    timestamp INTEGER, avatarHash BLOB)''')
+    
+    cursor.execute('''CREATE TABLE vendors(guid TEXT PRIMARY KEY, serializedNode BLOB)''')
+    
+    cursor.execute('''CREATE TABLE moderators(guid TEXT PRIMARY KEY, signedPubkey BLOB, encryptionKey BLOB,
+    encryptionSignature BLOB, bitcoinKey BLOB, bitcoinSignature BLOB, handle TEXT, name TEXT, description TEXT,
+    avatar BLOB, fee FLOAT)''')
+    
+    cursor.execute('''CREATE TABLE purchases(id TEXT PRIMARY KEY, title TEXT, description TEXT,
+    timestamp INTEGER, btc FLOAT, address TEXT, status INTEGER, outpoint BLOB, thumbnail BLOB, vendor TEXT,
+    proofSig BLOB, contractType TEXT)''')
+    
+    cursor.execute('''CREATE TABLE sales(id TEXT PRIMARY KEY, title TEXT, description TEXT,
+    timestamp INTEGER, btc REAL, address TEXT, status INTEGER, thumbnail BLOB, outpoint BLOB, buyer TEXT,
+    paymentTX TEXT, contractType TEXT)''')
+    
+    cursor.execute('''CREATE TABLE settings(id INTEGER PRIMARY KEY, refundAddress TEXT, currencyCode TEXT,
+    country TEXT, language TEXT, timeZone TEXT, notifications INTEGER, shippingAddresses BLOB, blocked BLOB,
+    libbitcoinServer TEXT, SSL INTEGER, seed TEXT, termsConditions TEXT, refundPolicy TEXT, moderatorList BLOB)''')
+        
+    db.commit()
