@@ -162,7 +162,7 @@ class DatastoreTest(unittest.TestCase):
         f = self.fd.get_followers()
         self.assertEqual(f, '')
 
-    def test_convesations(self):
+    def test_conversations(self):
         conversations = self.ms.get_conversations()
         self.assertTrue(len(conversations) == 0)
         self.ms.save_message(self.u.guid, self.m.handle, self.u.signed_pubkey,
