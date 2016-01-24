@@ -779,7 +779,7 @@ def _create_database(database):
 
     cursor.execute('''CREATE TABLE following(id INTEGER PRIMARY KEY, serializedFollowing BLOB)''')
 
-    cursor.execute('''CREATE TABLE messages(guid TEXT, handle TEXT, signedPubkey BLOB,
+    cursor.execute('''CREATE TABLE messages(msgID TEXT PRIMARY KEY, guid TEXT, handle TEXT, signedPubkey BLOB,
     encryptionPubkey BLOB, subject TEXT, messageType TEXT, message TEXT, timestamp INTEGER,
     avatarHash BLOB, signature BLOB, outgoing INTEGER, read INTEGER)''')
 
