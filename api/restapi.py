@@ -319,16 +319,17 @@ class OpenBazaarAPI(APIResource):
                 return False
             u = objects.Profile()
             if "name" in request.args:
-                u.name = request.args["name"][0]
+                u.name = request.args["name"][0].decode("utf8")
             if "location" in request.args:
                 # This needs to be formatted. Either here or from the UI.
                 u.location = CountryCode.Value(request.args["location"][0].upper())
             if "handle" in request.args:
-                u.handle = request.args["handle"][0]
+                u.handle = request.args["handle"][0].decode("utf8")
             if "about" in request.args:
-                u.about = request.args["about"][0]
+                u.about = request.args["about"][0].decode("utf8")
             if "short_description" in request.args:
                 u.short_description = request.args["short_description"][0]
+                u.short_description = u.short_description.decode("utf8")
             if "nsfw" in request.args:
                 u.nsfw = str_to_bool(request.args["nsfw"][0])
             if "vendor" in request.args:
@@ -338,9 +339,9 @@ class OpenBazaarAPI(APIResource):
             if "moderation_fee" in request.args:
                 u.moderation_fee = float(request.args["moderation_fee"][0])
             if "website" in request.args:
-                u.website = request.args["website"][0]
+                u.website = request.args["website"][0].decode("utf8")
             if "email" in request.args:
-                u.email = request.args["email"][0]
+                u.email = request.args["email"][0].decode("utf8")
             if "primary_color" in request.args:
                 u.primary_color = int(request.args["primary_color"][0])
             if "secondary_color" in request.args:
@@ -375,8 +376,15 @@ class OpenBazaarAPI(APIResource):
         try:
             p = Profile(self.db)
             if "account_type" in request.args and "username" in request.args:
-                p.add_social_account(request.args["account_type"][0], request.args["username"][0],
-                                     request.args["proof"][0] if "proof" in request.args else None)
+                if "proof" in request.args:
+                    proof = request.args["proof"][0].decode("utf8")
+                else:
+                    proof = None
+                p.add_social_account(
+                    request.args["account_type"][0],
+                    request.args["username"][0].decode("utf8"),
+                    proof
+                )
             else:
                 raise Exception("Missing required fields")
             request.write(json.dumps({"success": True}))
