@@ -12,6 +12,7 @@ from txrestapi.methods import GET, POST, DELETE
 from twisted.web import server
 from twisted.web.resource import NoResource
 from twisted.web import http
+from twisted.web.server import Site
 from twisted.internet import defer, reactor
 from twisted.protocols.basic import FileSender
 
@@ -104,6 +105,7 @@ class OpenBazaarAPI(APIResource):
                         "nsfw": profile.nsfw,
                         "vendor": profile.vendor,
                         "moderator": profile.moderator,
+                        "moderation_fee": profile.moderation_fee,
                         "handle": profile.handle,
                         "about": profile.about,
                         "short_description": profile.short_description,
@@ -333,6 +335,8 @@ class OpenBazaarAPI(APIResource):
                 u.vendor = str_to_bool(request.args["vendor"][0])
             if "moderator" in request.args:
                 u.moderator = str_to_bool(request.args["moderator"][0])
+            if "moderation_fee" in request.args:
+                u.moderation_fee = float(request.args["moderation_fee"][0])
             if "website" in request.args:
                 u.website = request.args["website"][0]
             if "email" in request.args:
@@ -558,7 +562,7 @@ class OpenBazaarAPI(APIResource):
                                              indent=4))
                     request.finish()
                 else:
-                    request.write(json.dumps({"success": False, "reason": "seller rejected contract"}, indent=4))
+                    request.write(json.dumps({"success": False, "reason": "vendor rejected contract"}, indent=4))
                     request.finish()
             options = None
             if "options" in request.args:
@@ -584,8 +588,8 @@ class OpenBazaarAPI(APIResource):
                 else:
                     request.write(json.dumps({"success": False, "reason": "unable to reach vendor"}, indent=4))
                     request.finish()
-            seller_guid = unhexlify(c.contract["vendor_offer"]["listing"]["id"]["guid"])
-            self.kserver.resolve(seller_guid).addCallback(get_node)
+            vendor_guid = unhexlify(c.contract["vendor_offer"]["listing"]["id"]["guid"])
+            self.kserver.resolve(vendor_guid).addCallback(get_node)
             return server.NOT_DONE_YET
         except Exception, e:
             request.write(json.dumps({"success": False, "reason": e.message}, indent=4))
@@ -1082,3 +1086,16 @@ class OpenBazaarAPI(APIResource):
         request.write(json.dumps(cases_list, indent=4))
         request.finish()
         return server.NOT_DONE_YET
+
+
+class RestAPI(Site):
+
+    def __init__(self, mserver, kserver, openbazaar_protocol, only_ip="127.0.0.1", timeout=60 * 60 * 1):
+        self.only_ip = only_ip
+        api_resource = OpenBazaarAPI(mserver, kserver, openbazaar_protocol)
+        Site.__init__(self, api_resource, timeout=timeout)
+
+    def buildProtocol(self, addr):
+        if addr.host != self.only_ip and self.only_ip != "0.0.0.0":
+            return
+        return Site.buildProtocol(self, addr)
