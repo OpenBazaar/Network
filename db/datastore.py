@@ -23,6 +23,10 @@ class Database(object):
         _initialize_datafolder_tree()
         _initialize_database(DATABASE)
 
+    # temporary, we wont need this if TESTNET in constants works
+    def path(self):
+        return self._database
+
     class HashMap(object):
         """
         Creates a table in the database for mapping file hashes (which are sent

@@ -7,8 +7,7 @@ folder)
 __author__ = 'foxcarlos-TeamCreed', 'Tobin Harding'
 
 import os
-from platform import platform
-from os.path import expanduser, join, isfile
+from os.path import join, isfile
 from ConfigParser import ConfigParser
 from urlparse import urlparse
 
@@ -135,6 +134,65 @@ def _tuple_from_seed_string(string):
     Accepts well formed seed string, returns tuple (url:port, key)
     '''
     return tuple(string.split(','))
+
+
+def _parse_config_file(config_parser):
+    if is_windows():
+        _parse_windows_config_file(config_parser)
+    elif is_osx():
+        _parse_osx_config_files(config_parser)
+    elif is_linux():
+        _parse_linux_config_files(config_parser)
+
+
+def _parse_windows_config_file(config_parser):
+    if isfile(WINDOWS_CONFIG_FILE):
+        config_parser.read(WINDOWS_CONFIG_FILE)
+    else:
+        print 'Warning: configuration file (%s) not found, using default values' % WINDOWS_CONFIG_FILE
+
+
+def _parse_osx_config_files(config_parser):
+    system_wide_config_file = '/etc/openbazaar.conf'
+
+    # user config file should be ~/Library/Preferences/OpenBazaar.app
+    # but they must be in XML
+
+    options_config_file = options_tmp_path()
+    in_order_config_files = [system_wide_config_file, options_config_file]
+    for config_file in in_order_config_files:
+        config_parser.read(config_file)
+
+
+def _parse_linux_config_files(config_parser):
+    basename = 'openbazaar.conf'
+    system_wide_config_file = join('/etc', basename)
+    user_config_file = join(default_data_path(), basename)
+    options_config_file = options_tmp_path()
+    in_order_config_files = [system_wide_config_file, user_config_file, options_config_file]
+    for config_file in in_order_config_files:
+        config_parser.read(config_file)
+
+
+def _data_path(absolute_path=None):
+    '''
+    Used to set constant DATA_FOLDER.
+    '''
+    if absolute_path:
+        if os.path.isabs(absolute_path):
+            return absolute_path
+
+    return default_data_path()
+
+def _openbazaard_node_port(port=None, testnet=None):
+    '''
+    Port used for node to node communication.
+    '''
+    if port:
+        return port
+    dif testnet:
+        return 28467
+    return 18467
 
 
 cfg = ConfigParser(DEFAULTS)

@@ -1,5 +1,4 @@
-__author__ = 'chris'
-
+__author__ = 'chris', 'tobin'
 import argparse
 import platform
 import requests
@@ -250,8 +249,35 @@ commands:
                 description="Restart the server",
                 usage='''usage:
         python openbazaard.py restart''')
-            parser.parse_args(sys.argv[2:])
-            print "Restarting OpenBazaar server..."
-            self.daemon.restart()
+
+        if len(sys.argv) > 1:
+            warning = 'Warning: restart does not accept options'
+            warning += ', manually stop then start server instead.'
+            print warning
+        print "Restarting OpenBazaar server..."
+        self.stop()
+        self.start()
+
+def _write_args_to_file(args):
+    '''
+    Write command line options to file.
+
+    File is temporary and in format accepted by ConfigParser
+    '''
+    path = options_tmp_path()
+    if isfile(path):
+        os.remove(path)
+    f = open(path, 'w')
+    print >>f, '[CONSTANTS]'
+
+    for arg in vars(args):
+        config_string = arg + ' = ' + str(getattr(args, arg))
+        print >>f, config_string
+
+    f.close()
+
+
+if __name__ == '__main__':
+    Parser()
 
     Parser(OpenBazaard('/tmp/openbazaard.pid'))
