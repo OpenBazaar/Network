@@ -1,6 +1,35 @@
-__author__ = 'chris'
+__author__ = 'chris', 'tobin'
+
 import sys, os, time, atexit
 from signal import SIGTERM
+from twisted.internet import reactor, task
+from twisted.python import log, logfile
+from txws import WebSocketFactory
+import socket
+import stun
+
+from api.ws import WSFactory
+from api.restapi import RestAPI
+from constants import DATA_FOLDER, KSIZE, ALPHA, LIBBITCOIN_SERVER, \
+    LIBBITCOIN_SERVER_TESTNET, SSL_KEY, SSL_CERT, SEEDS, PIDFILE, \
+    TESTNET, LOGLEVEL, NODE_PORT, ALLOWIP, SSL, RESTAPIPORT,\
+    WEBSOCKETPORT, DAEMON
+
+from db.datastore import Database
+from dht.network import Server
+from dht.node import Node
+from dht.storage import PersistentStorage, ForgetfulStorage
+from keys.keychain import KeyChain
+from log import Logger, FileLogObserver
+from market import network
+from market.listeners import MessageListenerImpl, BroadcastListenerImpl, NotificationListenerImpl
+from market.contracts import check_unfunded_for_payment
+from market.profile import Profile
+from net.sslcontext import ChainedOpenSSLContextFactory
+from net.upnp import PortMapper
+from net.wireprotocol import OpenBazaarProtocol
+from obelisk.client import LibbitcoinClient
+from protos.objects import FULL_CONE, RESTRICTED, SYMMETRIC
 
 
 class Daemon(object):
@@ -10,11 +39,10 @@ class Daemon(object):
     Usage: subclass the Daemon class and override the run() method
     """
     # pylint: disable=file-builtin
-    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    def __init__(self, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
-        self.pidfile = pidfile
 
     def daemonize(self):
         """
@@ -59,18 +87,18 @@ class Daemon(object):
         # write pidfile
         atexit.register(self.delpid)
         pid = str(os.getpid())
-        file(self.pidfile, 'w+').write("%s\n" % pid)
+        file(PIDFILE, 'w+').write("%s\n" % pid)
 
     def delpid(self):
-        os.remove(self.pidfile)
+        os.remove(PIDFILE)
 
-    def start(self, *args):
+    def start(self):
         """
         Start the daemon
         """
         # Check for a pidfile to see if the daemon already runs
         try:
-            pf = file(self.pidfile, 'r')
+            pf = file(PIDFILE, 'r')
             pid = int(pf.read().strip())
             pf.close()
         except IOError:
@@ -78,12 +106,13 @@ class Daemon(object):
 
         if pid:
             message = "pidfile %s already exist. Daemon already running?\n"
-            sys.stderr.write(message % self.pidfile)
+            sys.stderr.write(message % PIDFILE)
             sys.exit(1)
 
         # Start the daemon
-        self.daemonize()
-        self.run(*args)
+        if DAEMON:
+            self.daemonize()
+        self.run()
 
     def stop(self):
         """
@@ -91,7 +120,7 @@ class Daemon(object):
         """
         # Get the pid from the pidfile
         try:
-            pf = file(self.pidfile, 'r')
+            pf = file(PIDFILE, 'r')
             pid = int(pf.read().strip())
             pf.close()
         except IOError:
@@ -99,7 +128,7 @@ class Daemon(object):
 
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
-            sys.stderr.write(message % self.pidfile)
+            sys.stderr.write(message % PIDFILE)
             return # not an error in a restart
 
         # Try killing the daemon process
@@ -110,8 +139,8 @@ class Daemon(object):
         except OSError, err:
             err = str(err)
             if err.find("No such process") > 0:
-                if os.path.exists(self.pidfile):
-                    os.remove(self.pidfile)
+                if os.path.exists(PIDFILE):
+                    os.remove(PIDFILE)
             else:
                 print str(err)
                 sys.exit(1)
@@ -123,8 +152,126 @@ class Daemon(object):
         self.stop()
         self.start()
 
-    def run(self, *args):
-        """
-        You should override this method when you subclass Daemon. It will be called after the process has been
-        daemonized by start() or restart().
-        """
+    def run(self):
+        # database
+        db = Database(TESTNET)
+        
+        # key generation
+        keys = KeyChain(db)
+        
+        # logging
+        logFile = logfile.LogFile.fromFullPath(DATA_FOLDER + "debug.log",
+                                               rotateLength=15000000, maxRotatedFiles=1)
+        log.addObserver(FileLogObserver(logFile, level=LOGLEVEL).emit)
+        log.addObserver(FileLogObserver(level=LOGLEVEL).emit)
+        logger = Logger(system="OpenBazaard")
+        
+        # NAT traversal
+        p = PortMapper()
+        p.add_port_mapping(NODE_PORT, NODE_PORT, "UDP")
+        logger.info("Finding NAT Type...")
+        while True:
+            # sometimes the stun server returns a code the client
+            # doesn't understand so we have to try again
+            try:
+                response = stun.get_ip_info(source_port=NODE_PORT)
+                break
+            except Exception:
+                pass
+        logger.info("%s on %s:%s" % (response[0], response[1], response[2]))
+        ip_address = response[1]
+        port = response[2]
+        time.sleep(1)
+        
+        if response[0] == "Full Cone":
+            nat_type = FULL_CONE
+        elif response[0] == "Restric NAT":
+            nat_type = RESTRICTED
+        else:
+            nat_type = SYMMETRIC
+            
+        def on_bootstrap_complete(resp):
+            logger.info("bootstrap complete")
+            mserver.get_messages(mlistener)
+            task.LoopingCall(check_unfunded_for_payment, db,
+                             libbitcoin_client, nlistener, TESTNET).start(600)
+            
+        protocol = OpenBazaarProtocol((ip_address, port), nat_type, testnet=TESTNET,
+                                      relaying=True if nat_type == FULL_CONE else False)
+
+        # kademlia
+        storage = ForgetfulStorage() if TESTNET else PersistentStorage(db.DATABASE)
+        relay_node = None
+        if nat_type != FULL_CONE:
+            for seed in SEEDS:
+                try:
+                    relay_node = (socket.gethostbyname(seed[0].split(":")[0]),
+                                  28469 if TESTNET else 18469)
+                    break
+                except socket.gaierror:
+                    pass
+                
+        try:
+            kserver = Server.loadState(DATA_FOLDER + 'cache.pickle',
+                                       ip_address, port, protocol, db,
+                                       nat_type, relay_node, on_bootstrap_complete, storage)
+        except Exception:
+            node = Node(keys.guid, ip_address, port, keys.guid_signed_pubkey,
+                        relay_node, nat_type, Profile(db).get().vendor)
+            protocol.relay_node = node.relay_node
+            kserver = Server(node, db, KSIZE, ALPHA, storage=storage)
+            kserver.protocol.connect_multiplexer(protocol)
+            kserver.bootstrap(kserver.querySeed(SEEDS)).addCallback(on_bootstrap_complete)
+            
+        kserver.saveStateRegularly(DATA_FOLDER + 'cache.pickle', 10)
+        protocol.register_processor(kserver.protocol)
+        
+        # market
+        mserver = network.Server(kserver, keys.signing_key, db)
+        mserver.protocol.connect_multiplexer(protocol)
+        protocol.register_processor(mserver.protocol)
+        
+        reactor.listenUDP(port, protocol)
+        
+        interface = "0.0.0.0" if ALLOWIP not in ("127.0.0.1", "0.0.0.0") else ALLOWIP
+        
+        # websockets api
+        ws_api = WSFactory(mserver, kserver, only_ip=ALLOWIP)
+        if SSL:
+            reactor.listenSSL(RESTAPIPORT, WebSocketFactory(ws_api),
+                              ChainedOpenSSLContextFactory(SSL_KEY, SSL_CERT),
+                              interface=interface)
+        else:
+            reactor.listenTCP(WEBSOCKETPORT, WebSocketFactory(ws_api),
+                              interface=interface)
+
+        # rest api
+        rest_api = RestAPI(mserver, kserver, protocol, only_ip=ALLOWIP)
+        if SSL:
+            reactor.listenSSL(RESTAPIPORT, rest_api,
+                              ChainedOpenSSLContextFactory(SSL_KEY, SSL_CERT),
+                              interface=interface)
+        else:
+            reactor.listenTCP(RESTAPIPORT, rest_api, interface=interface)
+            
+        # blockchain
+        if TESTNET:
+            libbitcoin_client = LibbitcoinClient(LIBBITCOIN_SERVER_TESTNET,
+                                                 log=Logger(service="LibbitcoinClient"))
+        else:
+            libbitcoin_client = LibbitcoinClient(LIBBITCOIN_SERVER,
+                                                 log=Logger(service="LibbitcoinClient"))
+            
+        # listeners
+        nlistener = NotificationListenerImpl(ws_api, db)
+        mserver.protocol.add_listener(nlistener)
+        mlistener = MessageListenerImpl(ws_api, db)
+        mserver.protocol.add_listener(mlistener)
+        blistener = BroadcastListenerImpl(ws_api, db)
+        mserver.protocol.add_listener(blistener)
+        
+        protocol.set_servers(ws_api, libbitcoin_client)
+        
+        logger.info("Startup took %s seconds" % str(round(time.time() - args[7], 2)))
+        
+        reactor.run()
