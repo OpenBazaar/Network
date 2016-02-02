@@ -55,16 +55,20 @@ class OpenBazaarAPI(APIResource):
         else:
             return True
 
-    def __init__(self, mserver, kserver, protocol):
+    def __init__(self, mserver, kserver, protocol, username, password):
         self.mserver = mserver
         self.kserver = kserver
         self.protocol = protocol
         self.db = mserver.db
+        self.username = username
+        self.password = password
         self.keychain = KeyChain(self.db)
         APIResource.__init__(self)
 
     @GET('^/api/v1/get_image')
     def get_image(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         @defer.inlineCallbacks
         def _showImage(resp=None):
             @defer.inlineCallbacks
@@ -106,6 +110,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/profile')
     def get_profile(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         def parse_profile(profile, temp_handle=None):
             if profile is not None:
                 profile_json = {
@@ -169,6 +175,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_listings')
     def get_listings(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         def parse_listings(listings):
             if listings is not None:
                 response = {"listings": []}
@@ -214,6 +222,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_followers')
     def get_followers(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         def parse_followers(followers):
             if followers is not None:
                 response = {"followers": []}
@@ -253,6 +263,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_following')
     def get_following(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         def parse_following(following):
             if following is not None:
                 response = {"following": []}
@@ -293,6 +305,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/follow')
     def follow(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         if "guid" in request.args:
             def get_node(node):
                 if node is not None:
@@ -307,6 +321,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/unfollow')
     def unfollow(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         if "guid" in request.args:
             def get_node(node):
                 if node is not None:
@@ -322,6 +338,8 @@ class OpenBazaarAPI(APIResource):
     # pylint: disable=R0201
     @POST('^/api/v1/profile')
     def update_profile(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             p = Profile(self.db)
             can_update_profile = (p.get().encryption_key or
@@ -395,6 +413,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/social_accounts')
     def add_social_account(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             p = Profile(self.db)
             if "account_type" in request.args and "username" in request.args:
@@ -412,6 +432,8 @@ class OpenBazaarAPI(APIResource):
 
     @DELETE('^/api/v1/social_accounts')
     def delete_social_account(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             p = Profile(self.db)
             if "account_type" in request.args:
@@ -426,6 +448,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/contracts')
     def get_contract(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         def parse_contract(contract):
             if contract is not None:
                 request.setHeader('content-type', "application/json")
@@ -464,6 +488,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/contracts')
     def set_contract(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             if "options" in request.args:
                 options = {}
@@ -512,6 +538,8 @@ class OpenBazaarAPI(APIResource):
 
     @DELETE('^/api/v1/contracts')
     def delete_contract(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             if "id" in request.args:
                 file_path = self.db.HashMap().get_file(request.args["id"][0])
@@ -536,12 +564,16 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/shutdown')
     def shutdown(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         PortMapper().clean_my_mappings(self.kserver.node.port)
         self.protocol.shutdown()
         reactor.stop()
 
     @POST('^/api/v1/make_moderator')
     def make_moderator(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             self.mserver.make_moderator()
             request.write(json.dumps({"success": True}))
@@ -554,6 +586,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/unmake_moderator')
     def unmake_moderator(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             self.mserver.unmake_moderator()
             request.write(json.dumps({"success": True}))
@@ -566,6 +600,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/purchase_contract')
     def purchase_contract(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             def handle_response(resp, contract):
                 if resp:
@@ -613,6 +649,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/confirm_order')
     def confirm_order(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             def respond(success):
                 if success:
@@ -645,6 +683,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/upload_image')
     def upload_image(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             ret = []
             if "image" in request.args:
@@ -679,6 +719,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/complete_order')
     def complete_order(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         def respond(success):
             if success:
                 request.write(json.dumps({"success": True}))
@@ -706,6 +748,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/settings')
     def set_settings(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             resolver = RESOLVER if "resolver" not in request.args or request.args["resolver"][0] == "" \
                 else request.args["resolver"][0]
@@ -744,6 +788,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/settings')
     def get_settings(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         settings = self.db.Settings().get()
         if settings is None:
             request.write(json.dumps({}, indent=4))
@@ -797,6 +843,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/connected_peers')
     def get_connected_peers(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         request.setHeader('content-type', "application/json")
         request.write(str(bleach.clean(json.dumps(self.protocol.keys(), indent=4))))
         request.finish()
@@ -804,6 +852,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/routing_table')
     def get_routing_table(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         nodes = []
         for bucket in self.kserver.protocol.router.buckets:
             for node in bucket.nodes.values():
@@ -822,6 +872,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_notifications')
     def get_notifications(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         notifications = self.db.NotificationStore().get_notifications()
         limit = int(request.args["limit"][0]) if "limit" in request.args else len(notifications)
         notification_list = []
@@ -845,6 +897,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/mark_notification_as_read')
     def mark_notification_as_read(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             for notif_id in request.args["id"]:
                 self.db.NotificationStore().mark_as_read(notif_id)
@@ -858,6 +912,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/broadcast')
     def broadcast(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             def get_response(num):
                 request.write(json.dumps({"success": True, "peers reached": num}, indent=4))
@@ -871,6 +927,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_chat_messages')
     def get_chat_messages(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         messages = self.db.MessageStore().get_messages(request.args["guid"][0], "CHAT")
         limit = int(request.args["limit"][0]) if "limit" in request.args else len(messages)
         start = int(request.args["start"][0]) if "start" in request.args else 0
@@ -893,6 +951,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_chat_conversations')
     def get_chat_conversations(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         messages = self.db.MessageStore().get_conversations()
         request.setHeader('content-type', "application/json")
         request.write(str(bleach.clean(json.dumps(messages, indent=4))))
@@ -901,6 +961,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/mark_chat_message_as_read')
     def mark_chat_message_as_read(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             self.db.MessageStore().mark_as_read(request.args["guid"][0])
             request.write(json.dumps({"success": True}, indent=4))
@@ -913,6 +975,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_sales')
     def get_sales(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         sales = self.db.Sales().get_all()
         sales_list = []
         for sale in sales:
@@ -935,6 +999,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_purchases')
     def get_purchases(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         purchases = self.db.Purchases().get_all()
         purchases_list = []
         for purchase in purchases:
@@ -957,6 +1023,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/check_for_payment')
     def check_for_payment(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         if not self.protocol.blockchain.connected:
             request.write(json.dumps({"success": False, "reason": "libbitcoin server offline"}, indent=4))
             request.finish()
@@ -1001,6 +1069,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_order')
     def get_order(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         #TODO: if this is either a funded direct payment sale or complete moderated sale but
         #TODO: the payout tx has not hit the blockchain, rebroadcast.
 
@@ -1067,6 +1137,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/dispute_contract')
     def dispute_contract(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             self.mserver.open_dispute(request.args["order_id"][0], request.args["claim"][0])
             request.write(json.dumps({"success": True}, indent=4))
@@ -1079,6 +1151,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/close_dispute')
     def close_dispute(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             self.mserver.close_dispute(request.args["order_id"][0],
                                        request.args["resolution"][0],
@@ -1096,6 +1170,8 @@ class OpenBazaarAPI(APIResource):
 
     @POST('^/api/v1/release_funds')
     def release_funds(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         try:
             self.mserver.release_funds(request.args["order_id"][0])
             request.write(json.dumps({"success": True}, indent=4))
@@ -1108,6 +1184,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_cases')
     def get_cases(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         cases = self.db.Cases().get_all()
         cases_list = []
         for case in cases:
@@ -1131,6 +1209,8 @@ class OpenBazaarAPI(APIResource):
 
     @GET('^/api/v1/get_dispute_messages')
     def get_dispute_messages(self, request):
+        if not self._authenticate(request):
+            return server.NOT_DONE_YET
         message_list = []
         messages = self.db.MessageStore().get_dispute_messages(request.args["order_id"][0])
         for m in messages:
@@ -1152,9 +1232,10 @@ class OpenBazaarAPI(APIResource):
 
 class RestAPI(Site):
 
-    def __init__(self, mserver, kserver, openbazaar_protocol, only_ip="127.0.0.1", timeout=60 * 60 * 1):
+    def __init__(self, mserver, kserver, openbazaar_protocol, username, password,
+                 only_ip="127.0.0.1", timeout=60 * 60 * 1):
         self.only_ip = only_ip
-        api_resource = OpenBazaarAPI(mserver, kserver, openbazaar_protocol)
+        api_resource = OpenBazaarAPI(mserver, kserver, openbazaar_protocol, username, password)
         Site.__init__(self, api_resource, timeout=timeout)
 
     def buildProtocol(self, addr):
