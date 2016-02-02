@@ -22,6 +22,7 @@ from market import network
 from market.listeners import MessageListenerImpl, BroadcastListenerImpl, NotificationListenerImpl
 from market.contracts import check_unfunded_for_payment
 from market.profile import Profile
+from net.authentication import credentials
 from net.sslcontext import ChainedOpenSSLContextFactory
 from net.upnp import PortMapper
 from net.utils import looping_retry
@@ -44,6 +45,9 @@ def run(*args):
 
     # database
     db = Database(TESTNET)
+
+    # client authentication
+    username, password = credentials(db)
 
     # key generation
     keys = KeyChain(db)
@@ -115,7 +119,8 @@ def run(*args):
     interface = "0.0.0.0" if ALLOWIP not in ("127.0.0.1", "0.0.0.0") else ALLOWIP
 
     # websockets api
-    ws_api = WSFactory(mserver, kserver, only_ip=ALLOWIP)
+    ws_api = WSFactory(mserver, kserver, username, password, only_ip=ALLOWIP)
+
     if SSL:
         reactor.listenSSL(RESTPORT, WebSocketFactory(ws_api),
                           ChainedOpenSSLContextFactory(SSL_KEY, SSL_CERT), interface=interface)
@@ -123,7 +128,7 @@ def run(*args):
         reactor.listenTCP(WSPORT, WebSocketFactory(ws_api), interface=interface)
 
     # rest api
-    rest_api = RestAPI(mserver, kserver, protocol, only_ip=ALLOWIP)
+    rest_api = RestAPI(mserver, kserver, protocol, username, password, only_ip=ALLOWIP)
     if SSL:
         reactor.listenSSL(RESTPORT, rest_api, ChainedOpenSSLContextFactory(SSL_KEY, SSL_CERT), interface=interface)
     else:

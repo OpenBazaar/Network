@@ -6,6 +6,7 @@ import nacl.signing
 import nacl.encoding
 from keys.guid import GUID
 from nacl.public import PrivateKey
+from net.authentication import credentials
 from txrestapi.resource import APIResource
 from txrestapi.methods import GET
 from twisted.web import server
@@ -17,6 +18,7 @@ from twisted.internet import reactor
 class KeyChain(object):
 
     def __init__(self, database):
+        self.credentials = credentials(database)
         self.db = database.KeyStore()
         guid_keys = self.db.get_key("guid")
         if guid_keys is None:
@@ -40,7 +42,7 @@ class KeyChain(object):
         """
         print "Generating GUID, this may take a few minutes..."
         d = Deferred()
-        api = GUIDGenerationListener(d)
+        api = GUIDGenerationListener(d, self.credentials)
         site = Site(api, timeout=None)
         connector = reactor.listenTCP(18470, site, interface="127.0.0.1")
         start = time.time()
@@ -66,8 +68,9 @@ class KeyChain(object):
 
 class GUIDGenerationListener(APIResource):
 
-    def __init__(self, deferred):
+    def __init__(self, deferred, creds):
         self.deferred = deferred
+        self.credentials = creds
         APIResource.__init__(self)
 
     @GET('^/api/v1/guid_generation')
@@ -76,7 +79,12 @@ class GUIDGenerationListener(APIResource):
         A long polling GET which returns when the guid creation is finished.
         """
         def notify(resp):
-            request.write(json.dumps({"success": True, "GUID generation time": resp[0]}, indent=4))
+            request.write(json.dumps({
+                "success": True,
+                "GUID generation time": resp[0],
+                "username": self.credentials[0],
+                "password": self.credentials[1]
+            }, indent=4))
             request.finish()
             resp[1].stopListening()
         self.deferred.addCallback(notify)

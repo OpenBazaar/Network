@@ -25,9 +25,6 @@ class WSProtocol(Protocol):
     Handles new incoming requests coming from a websocket.
     """
 
-    def connectionMade(self):
-        self.factory.register(self)
-
     def connectionLost(self, reason=connectionDone):
         self.factory.unregister(self)
 
@@ -246,6 +243,12 @@ class WSProtocol(Protocol):
                 payload = ast.literal_eval(payload)
                 request_json = json.loads(payload)
 
+            if request_json["request"]["username"] != self.factory.username or \
+                            request_json["request"]["password"] != self.factory.password:
+                self.transport.loseConnection()
+                return
+
+            self.factory.register(self)
             message_id = str(request_json["request"]["id"])
 
             if request_json["request"]["command"] == "get_vendors":
@@ -274,13 +277,15 @@ class WSProtocol(Protocol):
 
 class WSFactory(Factory):
 
-    def __init__(self, mserver, kserver, only_ip="127.0.0.1"):
+    def __init__(self, mserver, kserver, username, password, only_ip="127.0.0.1"):
         self.mserver = mserver
         self.kserver = kserver
         self.db = mserver.db
         self.outstanding_listings = {}
         self.outstanding_vendors = {}
         self.protocol = WSProtocol
+        self.username = username
+        self.password = password
         self.only_ip = only_ip
         self.clients = []
 
@@ -300,5 +305,3 @@ class WSFactory(Factory):
     def push(self, msg):
         for c in self.clients:
             c.transport.write(msg)
-
-
