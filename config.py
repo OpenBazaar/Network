@@ -1,9 +1,5 @@
-'''Parses configuration file and sets project wide constants.
+"""Parses configuration file and sets project wide constants."""
 
-This file has intrinsic naming difficulties because it is trying to be platform
-agnostic but naming variables is inherently platform specific (i.e directory vs
-folder)
-'''
 __author__ = 'foxcarlos-TeamCreed', 'Tobin Harding'
 
 import os
@@ -37,18 +33,13 @@ DEFAULTS = {
     'seed': 'seed.openbazaar.org:8080,5b44be5c18ced1bc9400fe5e79c8ab90204f06bebacc04dd9c70a95eaca6e117',
 }
 
-
 def _platform_agnostic_data_path(data_folder):
-    '''
+    """
     Create absolute path name, exported as DATA_FOLDER.
 
-    User may configure using relative path, absolute path or use default.
-      Relative path puts named folder in users home directory.
-      Absolute path uses (obviously) the named absolute path.
-      Default is currently to use 'OpenBazaar' in home directory.
-
-    See issue #163
-    '''
+    Args:
+      data_folder: absolute path or None
+    """
     if data_folder:
         if os.path.isabs(data_folder):
             return data_folder
@@ -57,20 +48,23 @@ def _platform_agnostic_data_path(data_folder):
 
 
 def _platform_agnostic_home_path():
+    """Determine system home path."""
     home_path = ''
     if _is_windows():
-        home_path = os.environ['HOMEPATH'] # Does this work for versions before Windows 7?
+        home_path = os.environ['HOMEPATH']
     else:
         home_path = expanduser('~')
 
     return home_path
 
 
-# see issue  #163
 def _platform_agnostic_data_folder(data_folder):
-    '''
+    """
     Try to fit in with platform file naming conventions.
-    '''
+
+    Args:
+      data_folder: absolute path or None
+    """
     if data_folder:
         return data_folder
 
@@ -101,10 +95,8 @@ def _is_osx():
 
 
 def _is_well_formed_seed_string(string):
-    '''
-    Parse string url:port,key
+    """Parse string url:port,key."""
 
-    '''
     if ',' in string:
         url, key = string.split(',')
         parsed = urlparse(url)
@@ -133,9 +125,7 @@ def _is_seed_tuple(tup):
 
 
 def _tuple_from_seed_string(string):
-    '''
-    Accepts well formed seed string, returns tuple (url:port, key)
-    '''
+    """Accepts well formed seed string, returns tuple (url:port, key)."""
     return tuple(string.split(','))
 
 
@@ -144,7 +134,7 @@ cfg = ConfigParser(DEFAULTS)
 if isfile(CONFIG_FILE):
     cfg.read(CONFIG_FILE)
 else:
-    print 'Warning: configuration file not found: (%s), using default values' % CONFIG_FILE
+    print 'Warning: configuration file not found: %s' % CONFIG_FILE
 
 DATA_FOLDER = _platform_agnostic_data_path(cfg.get('CONSTANTS', 'DATA_FOLDER'))
 KSIZE = int(cfg.get('CONSTANTS', 'KSIZE'))
