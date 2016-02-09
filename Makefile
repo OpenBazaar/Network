@@ -1,5 +1,5 @@
 SCRIPTS=./scripts
-TESTPATH=./dht/tests ./db/tests ./market/tests
+TESTPATH=./dht/tests ./db/tests ./market/tests ./utils/tests
 
 .PHONY: all unittest check
 
