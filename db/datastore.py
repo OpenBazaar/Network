@@ -48,16 +48,12 @@ class Database(object):
         def get_file(self, hash_value):
             cursor = self.db.cursor()
             cursor.execute('''SELECT filepath FROM hashmap WHERE hash=?''', (hash_value,))
-            ret = cursor.fetchone()
-            if ret is None:
-                return None
-            return ret[0]
+            return _first_row_and_column_or_none(cursor)
 
         def get_all(self):
             cursor = self.db.cursor()
             cursor.execute('''SELECT * FROM hashmap ''')
-            ret = cursor.fetchall()
-            return ret
+            return cursor.fetchall()
 
         def delete(self, hash_value):
             cursor = self.db.cursor()
@@ -93,10 +89,7 @@ class Database(object):
         def get_proto(self):
             cursor = self.db.cursor()
             cursor.execute('''SELECT serializedUserInfo FROM profile WHERE id = 1''')
-            ret = cursor.fetchone()
-            if ret is None:
-                return None
-            return ret[0]
+            return _first_row_and_column_or_none(cursor)
 
         def set_temp_handle(self, handle):
             cursor = self.db.cursor()
@@ -110,11 +103,8 @@ class Database(object):
         def get_temp_handle(self):
             cursor = self.db.cursor()
             cursor.execute('''SELECT tempHandle FROM profile WHERE id = 1''')
-            ret = cursor.fetchone()
-            if ret is None:
-                return ""
-            else:
-                return ret[0]
+            return _first_row_and_column_or_empty(cursor)
+
 
     class ListingsStore(object):
         """
@@ -166,10 +156,8 @@ class Database(object):
         def get_proto(self):
             cursor = self.db.cursor()
             cursor.execute('''SELECT serializedListings FROM listings WHERE id = 1''')
-            ret = cursor.fetchone()
-            if ret is None:
-                return None
-            return ret[0]
+            return _first_row_and_column_or_none(cursor)
+
 
     class KeyStore(object):
         """
@@ -188,11 +176,7 @@ class Database(object):
         def get_key(self, key_type):
             cursor = self.db.cursor()
             cursor.execute('''SELECT privkey, pubkey FROM keys WHERE type=?''', (key_type,))
-            ret = cursor.fetchone()
-            if not ret:
-                return None
-            else:
-                return ret
+            return cursor.fetchone()
 
         def delete_all_keys(self):
             cursor = self.db.cursor()
@@ -284,11 +268,8 @@ class Database(object):
         def get_followers(self):
             cursor = self.db.cursor()
             cursor.execute('''SELECT serializedFollowers FROM followers WHERE id=1''')
-            proto = cursor.fetchone()
-            if not proto:
-                return None
-            else:
-                return proto[0]
+            return _first_row_and_column_or_none(cursor)
+
 
     class MessageStore(object):
         """
@@ -342,7 +323,8 @@ avatarHash, signature, outgoing, read FROM messages WHERE subject=? ''',
 
             Returns:
               Array of dictionaries, one element for each guid. Dictionaries
-              include last message only."""
+              include last message only.
+            """
             cursor = self.db.cursor()
             cursor.execute('''SELECT DISTINCT guid FROM messages''',)
             guids = cursor.fetchall()
@@ -549,11 +531,7 @@ address, status, thumbnail, vendor, proofSig, contractType) VALUES (?,?,?,?,?,?,
             cursor = self.db.cursor()
             cursor.execute('''SELECT id, title, description, timestamp, btc, address, status,
      thumbnail, vendor, contractType, proofSig FROM purchases WHERE id=?''', (order_id,))
-            ret = cursor.fetchall()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return cursor.fetchone()
 
         def delete_purchase(self, order_id):
             cursor = self.db.cursor()
@@ -579,11 +557,8 @@ address, status, thumbnail, vendor, proofSig, contractType) VALUES (?,?,?,?,?,?,
         def get_status(self, order_id):
             cursor = self.db.cursor()
             cursor.execute('''SELECT status FROM purchases WHERE id=?''', (order_id,))
-            ret = cursor.fetchone()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return _first_row_and_column_or_none(cursor)
+
 
         def update_outpoint(self, order_id, outpoint):
             cursor = self.db.cursor()
@@ -593,20 +568,14 @@ address, status, thumbnail, vendor, proofSig, contractType) VALUES (?,?,?,?,?,?,
         def get_outpoint(self, order_id):
             cursor = self.db.cursor()
             cursor.execute('''SELECT outpoint FROM purchases WHERE id=?''', (order_id,))
-            ret = cursor.fetchone()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return _first_row_and_column_or_none(cursor)
+
 
         def get_proof_sig(self, order_id):
             cursor = self.db.cursor()
             cursor.execute('''SELECT proofSig FROM purchases WHERE id=?''', (order_id,))
-            ret = cursor.fetchone()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return _first_row_and_column_or_none(cursor)
+
 
     class Sales(object):
         """
@@ -632,11 +601,7 @@ status, thumbnail, buyer, contractType) VALUES (?,?,?,?,?,?,?,?,?,?)''',
             cursor = self.db.cursor()
             cursor.execute('''SELECT id, title, description, timestamp, btc, address, status,
     thumbnail, buyer, contractType FROM sales WHERE id=?''', (order_id,))
-            ret = cursor.fetchall()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return cursor.fetchone()
 
         def delete_sale(self, order_id):
             cursor = self.db.cursor()
@@ -662,11 +627,7 @@ status, thumbnail, buyer, contractType) VALUES (?,?,?,?,?,?,?,?,?,?)''',
         def get_status(self, order_id):
             cursor = self.db.cursor()
             cursor.execute('''SELECT status FROM sales WHERE id=?''', (order_id,))
-            ret = cursor.fetchone()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return _first_row_and_column_or_none(cursor)
 
         def update_outpoint(self, order_id, outpoint):
             cursor = self.db.cursor()
@@ -681,11 +642,8 @@ status, thumbnail, buyer, contractType) VALUES (?,?,?,?,?,?,?,?,?,?)''',
         def get_outpoint(self, order_id):
             cursor = self.db.cursor()
             cursor.execute('''SELECT outpoint FROM sales WHERE id=?''', (order_id,))
-            ret = cursor.fetchone()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return _first_row_and_column_or_none(cursor)
+
 
     class Cases(object):
         """
@@ -721,11 +679,7 @@ buyer, vendor, validation, claim, status FROM cases ''')
         def get_claim(self, order_id):
             cursor = self.db.cursor()
             cursor.execute('''SELECT claim FROM cases WHERE id=?''', (order_id,))
-            ret = cursor.fetchone()
-            if not ret:
-                return None
-            else:
-                return ret[0]
+            return _first_row_and_column_or_none(cursor)
 
         def update_status(self, order_id, status):
             cursor = self.db.cursor()
@@ -927,3 +881,17 @@ country TEXT, language TEXT, timeZone TEXT, notifications INTEGER, shippingAddre
 termsConditions TEXT, refundPolicy TEXT, moderatorList BLOB, username TEXT, password TEXT)''')
 
     db.commit()
+
+
+def _first_row_and_column_or_none(cursor):
+    ret = cursor.fetchone()
+    if ret is None:
+        return None
+    return ret[0]
+
+
+def _first_row_and_column_or_empty(cursor):
+    ret = cursor.fetchone()
+    if ret is None:
+        return ''
+    return ret[0]
