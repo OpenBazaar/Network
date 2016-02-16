@@ -9,30 +9,32 @@ from collections import OrderedDict
 from interfaces import MessageProcessor, BroadcastListener, MessageListener, NotificationListener
 from keys.bip32utils import derive_childkey
 from log import Logger
-from market.contracts import Contract
-from market.moderation import process_dispute, close_dispute
-from market.profile import Profile
-from nacl.public import PublicKey, Box
-from net.rpcudp import RPCProtocol
-from protos.message import GET_CONTRACT, GET_IMAGE, GET_PROFILE, GET_LISTINGS, GET_USER_METADATA,\
-    GET_CONTRACT_METADATA, FOLLOW, UNFOLLOW, GET_FOLLOWERS, GET_FOLLOWING, BROADCAST, MESSAGE, ORDER, \
-    ORDER_CONFIRMATION, COMPLETE_ORDER, DISPUTE_OPEN, DISPUTE_CLOSE, GET_RATINGS, REFUND
 from protos.objects import Metadata, Listings, Followers, PlaintextMessage
 from zope.interface import implements
 from zope.interface.exceptions import DoesNotImplement
 from zope.interface.verify import verifyObject
+from nacl.public import PublicKey, Box
+
+from db.datastore import Database
+from market.contracts import Contract
+from market.moderation import process_dispute, close_dispute
+from market.profile import Profile
+from net.rpcudp import RPCProtocol
+from protos.message import GET_CONTRACT, GET_IMAGE, GET_PROFILE, GET_LISTINGS, GET_USER_METADATA,\
+    GET_CONTRACT_METADATA, FOLLOW, UNFOLLOW, GET_FOLLOWERS, GET_FOLLOWING, BROADCAST, MESSAGE, ORDER, \
+    ORDER_CONFIRMATION, COMPLETE_ORDER, DISPUTE_OPEN, DISPUTE_CLOSE, GET_RATINGS, REFUND
 
 
 class MarketProtocol(RPCProtocol):
     implements(MessageProcessor)
 
-    def __init__(self, node, router, signing_key, database):
+    def __init__(self, node, router, signing_key):
         self.router = router
         self.node = node
         RPCProtocol.__init__(self, node, router)
         self.log = Logger(system=self)
         self.multiplexer = None
-        self.db = database
+        self.db = Database()
         self.signing_key = signing_key
         self.listeners = []
         self.handled_commands = [GET_CONTRACT, GET_IMAGE, GET_PROFILE, GET_LISTINGS, GET_USER_METADATA,

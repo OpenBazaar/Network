@@ -16,24 +16,27 @@ import time
 from binascii import unhexlify
 from collections import OrderedDict
 from config import DATA_FOLDER, TRANSACTION_FEE
+from log import Logger
+from nacl.public import PrivateKey, PublicKey, Box
+from twisted.internet import defer, reactor, task
+
 from dht.node import Node
 from dht.utils import digest
 from keys.bip32utils import derive_childkey
 from keys.keychain import KeyChain
-from log import Logger
 from market.contracts import Contract
 from market.moderation import process_dispute, close_dispute
 from market.profile import Profile
 from market.protocol import MarketProtocol
 from market.transactions import BitcoinTransaction
-from nacl.public import PrivateKey, PublicKey, Box
 from protos import objects
 from seed import peers
-from twisted.internet import defer, reactor, task
+from db.datastore import Database
+
 
 
 class Server(object):
-    def __init__(self, kserver, signing_key, database):
+    def __init__(self, kserver, signing_key):
         """
         A high level class for sending direct, market messages to other nodes.
         A node will need one of these to participate in buying and selling.
@@ -42,9 +45,9 @@ class Server(object):
         self.kserver = kserver
         self.signing_key = signing_key
         self.router = kserver.protocol.router
-        self.db = database
+        self.db = Database()
         self.log = Logger(system=self)
-        self.protocol = MarketProtocol(kserver.node, self.router, signing_key, database)
+        self.protocol = MarketProtocol(kserver.node, self.router, signing_key)
 
         # TODO: we need a loop here that republishes keywords when they are about to expire
 
@@ -290,11 +293,11 @@ class Server(object):
 
         u = objects.Profile()
         k = u.PublicKey()
-        k.public_key = unhexlify(bitcointools.bip32_extract_key(KeyChain(self.db).bitcoin_master_pubkey))
+        k.public_key = unhexlify(bitcointools.bip32_extract_key(KeyChain().bitcoin_master_pubkey))
         k.signature = self.signing_key.sign(k.public_key)[:64]
         u.bitcoin_key.MergeFrom(k)
         u.moderator = True
-        Profile(self.db).update(u)
+        Profile().update(u)
         proto = self.kserver.node.getProto().SerializeToString()
         self.kserver.set(digest("moderators"), digest(proto), proto)
         self.log.info("setting self as moderator on the network")
@@ -307,7 +310,7 @@ class Server(object):
         key = digest(self.kserver.node.getProto().SerializeToString())
         signature = self.signing_key.sign(key)[:64]
         self.kserver.delete("moderators", key, signature)
-        Profile(self.db).remove_field("moderator")
+        Profile().remove_field("moderator")
         self.log.info("removing self as moderator from the network")
 
     def follow(self, node_to_follow):
@@ -338,7 +341,7 @@ class Server(object):
             else:
                 return False
 
-        proto = Profile(self.db).get(False)
+        proto = Profile().get(False)
         m = objects.Metadata()
         m.name = proto.name
         m.handle = proto.handle
@@ -484,7 +487,7 @@ class Server(object):
         Sends a message to another node. If the node isn't online it
         will be placed in the dht for the node to pick up later.
         """
-        pro = Profile(self.db).get()
+        pro = Profile().get()
         p = objects.PlaintextMessage()
         p.sender_guid = self.kserver.node.id
         p.pubkey = self.kserver.node.pubkey
@@ -724,12 +727,12 @@ class Server(object):
                     proof_sig = None
             except Exception:
                 return False
-        keychain = KeyChain(self.db)
+        keychain = KeyChain()
         contract["dispute"] = {}
         contract["dispute"]["info"] = {}
         contract["dispute"]["info"]["claim"] = claim
         contract["dispute"]["info"]["guid"] = keychain.guid.encode("hex")
-        contract["dispute"]["info"]["avatar_hash"] = Profile(self.db).get().avatar_hash.encode("hex")
+        contract["dispute"]["info"]["avatar_hash"] = Profile().get().avatar_hash.encode("hex")
         if proof_sig:
             contract["dispute"]["info"]["proof_sig"] = base64.b64encode(proof_sig)
         info = json.dumps(contract["dispute"]["info"], indent=4)
@@ -745,7 +748,7 @@ class Server(object):
         elif self.db.Sales().get_sale(order_id) is not None:
             self.db.Sales().update_status(order_id, 4)
 
-        avatar_hash = Profile(self.db).get().avatar_hash
+        avatar_hash = Profile().get().avatar_hash
 
         self.db.MessageStore().save_message(guid, handle, "", order_id, "DISPUTE_OPEN",
                                             claim, time.time(), avatar_hash, "", True)
@@ -849,7 +852,7 @@ class Server(object):
                                                           testnet=self.protocol.multiplexer.testnet)
                     chaincode = contract["buyer_order"]["order"]["payment"]["chaincode"]
                     redeem_script = str(contract["buyer_order"]["order"]["payment"]["redeem_script"])
-                    masterkey_m = bitcointools.bip32_extract_key(KeyChain(self.db).bitcoin_master_privkey)
+                    masterkey_m = bitcointools.bip32_extract_key(KeyChain().bitcoin_master_privkey)
                     moderator_priv = derive_childkey(masterkey_m, chaincode, bitcointools.MAINNET_PRIVATE)
 
                     signatures = tx.create_signature(moderator_priv, redeem_script)
@@ -858,7 +861,7 @@ class Server(object):
                     dispute_json["dispute_resolution"]["resolution"]["claim"] = self.db.Cases().get_claim(order_id)
                     dispute_json["dispute_resolution"]["resolution"]["decision"] = resolution
                     dispute_json["dispute_resolution"]["signature"] = \
-                        base64.b64encode(KeyChain(self.db).signing_key.sign(json.dumps(
+                        base64.b64encode(KeyChain().signing_key.sign(json.dumps(
                             dispute_json["dispute_resolution"]["resolution"], indent=4))[:64])
 
                     def get_node(node_to_ask, recipient_guid, public_key):
@@ -925,7 +928,7 @@ class Server(object):
         tx = BitcoinTransaction.make_unsigned(outpoints, outputs)
         chaincode = contract["buyer_order"]["order"]["payment"]["chaincode"]
         redeem_script = str(contract["buyer_order"]["order"]["payment"]["redeem_script"])
-        masterkey = bitcointools.bip32_extract_key(KeyChain(self.db).bitcoin_master_privkey)
+        masterkey = bitcointools.bip32_extract_key(KeyChain().bitcoin_master_privkey)
         childkey = derive_childkey(masterkey, chaincode, bitcointools.MAINNET_PRIVATE)
 
         own_sig = tx.create_signature(childkey, redeem_script)

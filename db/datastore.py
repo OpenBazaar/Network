@@ -3,7 +3,7 @@ __author__ = 'chris'
 import os
 import sqlite3 as lite
 from collections import Counter
-from config import DATA_FOLDER
+from config import DATA_FOLDER, TESTNET
 from dht.node import Node
 from dht.utils import digest
 from protos import objects
@@ -16,10 +16,10 @@ class Database(object):
     # pylint: disable=W0601
     DATABASE = None
 
-    def __init__(self, testnet=False, filepath=None):
+    def __init__(self, filepath=None):
         global DATABASE
 
-        DATABASE = _database_path(testnet, filepath)
+        DATABASE = _database_path(filepath)
         _initialize_datafolder_tree()
         _initialize_database(DATABASE)
 
@@ -812,19 +812,13 @@ refundPolicy, moderatorList) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
             return cursor.fetchone()
 
 
-def _database_path(testnet, filepath):
-    '''
-    Get database pathname.
-
-    Args:
-      testnet: Boolean
-      filename: If provided, overrides testnet
-    '''
+def _database_path(filepath):
+    """Get database pathname."""
     path = ''
 
     if filepath:
         path = filepath
-    elif testnet:
+    elif TESTNET:
         path = join(DATA_FOLDER, "OB-Testnet.db")
     else:
         path = join(DATA_FOLDER, "OB-Mainnet.db")
@@ -833,9 +827,7 @@ def _database_path(testnet, filepath):
 
 
 def _initialize_database(database):
-    '''
-    Create database, if not present, and clear cache.
-    '''
+    """Create database, if not present, and clear cache."""
     if not database:
         raise RuntimeError('attempted to initialize empty path')
 
@@ -847,9 +839,7 @@ def _initialize_database(database):
 
 
 def _initialize_datafolder_tree():
-    '''
-    Creates, if not present, directory tree in DATA_FOLDER.
-    '''
+    """Creates, if not present, directory tree in DATA_FOLDER."""
     tree = [
         ['cache'],
         ['store', 'contracts', 'listings'],

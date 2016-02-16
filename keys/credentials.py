@@ -3,8 +3,11 @@ import random
 from config import USERNAME, PASSWORD
 from hashlib import sha256
 
+from db.datastore import Database
 
-def get_credentials(database):
+
+def get_credentials():
+    database = Database()
     settings = database.Settings()
     creds = settings.get_credentials()
     if creds == (USERNAME, PASSWORD):

@@ -2,14 +2,6 @@ __author__ = 'chris'
 import socket
 import nacl.signing
 import nacl.hash
-from config import SEEDS
-from dht.node import Node
-from dht.utils import digest
-from interfaces import MessageProcessor
-from log import Logger
-from net.dos import BanScore
-from protos.message import Message, PING, NOT_FOUND
-from protos.objects import FULL_CONE
 from random import shuffle
 from twisted.internet import task, reactor
 from twisted.internet.task import LoopingCall
@@ -18,6 +10,15 @@ from txrudp.crypto_connection import CryptoConnectionFactory
 from txrudp.rudp import ConnectionMultiplexer
 from zope.interface.verify import verifyObject
 
+from log import Logger
+from interfaces import MessageProcessor
+from db.datastore import Database
+from net.dos import BanScore
+from protos.message import Message, PING, NOT_FOUND
+from protos.objects import FULL_CONE
+from dht.node import Node
+from dht.utils import digest
+from config import SEEDS
 
 class OpenBazaarProtocol(ConnectionMultiplexer):
     """
@@ -27,7 +28,7 @@ class OpenBazaarProtocol(ConnectionMultiplexer):
     the appropriate classes for processing.
     """
 
-    def __init__(self, db, ip_address, nat_type, testnet=False, relaying=False):
+    def __init__(self, ip_address, nat_type):
         """
         Initialize the new protocol with the connection handler factory.
 
@@ -35,15 +36,16 @@ class OpenBazaarProtocol(ConnectionMultiplexer):
                 ip_address: a `tuple` of the (ip address, port) of ths node.
         """
         self.ip_address = ip_address
-        self.testnet = testnet
         self.ws = None
         self.blockchain = None
         self.processors = []
         self.relay_node = None
         self.nat_type = nat_type
-        self.vendors = db.VendorStore().get_vendors()
+        self.vendors = Database().VendorStore().get_vendors()
         self.factory = self.ConnHandlerFactory(self.processors, nat_type, self.relay_node)
         self.log = Logger(system=self)
+
+        relaying = True if nat_type == FULL_CONE else False
         ConnectionMultiplexer.__init__(self, CryptoConnectionFactory(self.factory), self.ip_address[0], relaying)
 
     class ConnHandler(Handler):

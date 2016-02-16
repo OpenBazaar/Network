@@ -1,6 +1,8 @@
 __author__ = 'chris'
 import gnupg
+
 from protos import objects
+from db.datastore import Database
 
 
 class Profile(object):
@@ -11,9 +13,9 @@ class Profile(object):
     need to send it to our peers, we can just call get().
     """
 
-    def __init__(self, db):
+    def __init__(self):
         self.profile = objects.Profile()
-        self.db = db.ProfileStore()
+        self.db = Database().ProfileStore()
         if self.db.get_proto() is not None:
             self.profile.ParseFromString(self.db.get_proto())
 

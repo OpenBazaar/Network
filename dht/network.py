@@ -26,7 +26,7 @@ from dht.crawling import NodeSpiderCrawl
 
 from protos import objects
 
-from config import SEEDS
+from config import SEEDS, TESTNET
 from random import shuffle
 
 
@@ -48,7 +48,7 @@ class Server(object):
     to start listening as an active node on the network.
     """
 
-    def __init__(self, node, db, signing_key, ksize=20, alpha=3, storage=None):
+    def __init__(self, node, signing_key, ksize=20, alpha=3, storage=None):
         """
         Create a server instance.  This will start listening on the given port.
 
@@ -64,7 +64,7 @@ class Server(object):
         self.log = Logger(system=self)
         self.storage = storage or ForgetfulStorage()
         self.node = node
-        self.protocol = KademliaProtocol(self.node, self.storage, ksize, db, signing_key)
+        self.protocol = KademliaProtocol(self.node, self.storage, ksize, signing_key)
         self.refreshLoop = LoopingCall(self.refreshTable).start(3600)
 
     def listen(self, port):
@@ -357,7 +357,7 @@ class Server(object):
                 'pubkey': self.node.pubkey,
                 'signing_key': self.protocol.signing_key,
                 'neighbors': self.bootstrappableNeighbors(),
-                'testnet': self.protocol.multiplexer.testnet}
+                'testnet': TESTNET}
         if len(data['neighbors']) == 0:
             self.log.warning("no known neighbors, so not writing to cache.")
             return
@@ -365,19 +365,18 @@ class Server(object):
             pickle.dump(data, f)
 
     @classmethod
-    def loadState(cls, fname, ip_address, port, multiplexer, db, nat_type, relay_node, callback=None, storage=None):
+    def loadState(cls, fname, ip, port, nat_type, relay_node, callback=None, storage=None):
         """
         Load the state of this node (the alpha/ksize/id/immediate neighbors)
         from a cache file with the given fname.
         """
         with open(fname, 'r') as f:
             data = pickle.load(f)
-        if data['testnet'] != multiplexer.testnet:
+        if data['testnet'] != TESTNET:
             raise Exception('Cache uses wrong network parameters')
 
-        n = Node(data['id'], ip_address, port, data['pubkey'], relay_node, nat_type, data['vendor'])
-        s = Server(n, db, data['signing_key'], data['ksize'], data['alpha'], storage=storage)
-        s.protocol.connect_multiplexer(multiplexer)
+        n = Node(data['id'], ip, port, data['pubkey'], relay_node, nat_type, data['vendor'])
+        s = Server(n, data['signing_key'], data['ksize'], data['alpha'], storage=storage)
         if len(data['neighbors']) > 0:
             if callback is not None:
                 s.bootstrap(data['neighbors']).addCallback(callback)

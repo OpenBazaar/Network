@@ -7,7 +7,10 @@ import os
 import time
 import nacl.signing
 import nacl.encoding
-from config import DATA_FOLDER
+from twisted.internet.protocol import Protocol, Factory, connectionDone
+from txws import WebSocketProtocol, WebSocketFactory
+
+from config import DATA_FOLDER, ALLOWIP
 from market.profile import Profile
 from keys.keychain import KeyChain
 from random import shuffle
@@ -16,8 +19,8 @@ from protos.objects import PlaintextMessage, Value, Listings
 from protos import objects
 from binascii import unhexlify
 from dht.node import Node
-from twisted.internet.protocol import Protocol, Factory, connectionDone
-from txws import WebSocketProtocol, WebSocketFactory
+from db.datastore import Database
+
 
 ALLOWED_TAGS = ('h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'u', 'ul', 'ol', 'nl', 'li', 'b', 'i', 'strong',
                 'em', 'strike', 'hr', 'br', 'img', 'blockquote')
@@ -282,14 +285,14 @@ class WSProtocol(Protocol):
 
 class WSFactory(Factory):
 
-    def __init__(self, mserver, kserver, only_ip="127.0.0.1"):
+    def __init__(self, mserver, kserver):
         self.mserver = mserver
         self.kserver = kserver
-        self.db = mserver.db
+        self.db = Database()
         self.outstanding_listings = {}
         self.outstanding_vendors = {}
         self.protocol = WSProtocol
-        self.only_ip = only_ip
+        self.only_ip = ALLOWIP
         self.clients = []
 
     def buildProtocol(self, addr):

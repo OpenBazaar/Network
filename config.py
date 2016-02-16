@@ -14,6 +14,9 @@ from urlparse import urlparse
 
 PROTOCOL_VERSION = 13
 CONFIG_FILE = join(os.getcwd(), 'ob.cfg')
+TESTNET_PORT = 28467
+MAINNET_PORT = 18467
+
 
 # FIXME probably a better way to do this. This curretly checks two levels deep
 for i in range(2):
@@ -30,6 +33,12 @@ DEFAULTS = {
     'libbitcoin_server': 'tcp://libbitcoin1.openbazaar.org:9091',
     'libbitcoin_server_testnet': 'tcp://libbitcoin2.openbazaar.org:9091',
     'resolver': 'http://resolver.onename.com/',
+    'testnet': 'True',
+    'loglevel': 'info',
+    'allowip': '127.0.0.1',
+    'restport': '18460',
+    'wsport': '18466',
+    'heartbeatport': '18470',
     'ssl_cert': None,
     'ssl_key': None,
     'ssl': False,
@@ -165,11 +174,21 @@ TRANSACTION_FEE = int(cfg.get('CONSTANTS', 'TRANSACTION_FEE'))
 LIBBITCOIN_SERVER = cfg.get('CONSTANTS', 'LIBBITCOIN_SERVER')
 LIBBITCOIN_SERVER_TESTNET = cfg.get('CONSTANTS', 'LIBBITCOIN_SERVER_TESTNET')
 RESOLVER = cfg.get('CONSTANTS', 'RESOLVER')
+TESTNET = str_to_bool(cfg.get('CONSTANTS', 'TESTNET'))
+PORT = MAINNET_PORT if not TESTNET else TESTNET_PORT
+LOGLEVEL = cfg.get('CONSTANTS', 'LOGLEVEL')
+ALLOWIP = cfg.get('CONSTANTS', 'ALLOWIP')
+RESTPORT = int(cfg.get('CONSTANTS', 'RESTPORT'))
+WSPORT = int(cfg.get('CONSTANTS', 'WSPORT'))
+HEARTBEATPORT = int(cfg.get('CONSTANTS', 'HEARTBEATPORT'))
+
 SSL = str_to_bool(cfg.get('AUTHENTICATION', 'SSL'))
 SSL_CERT = cfg.get('AUTHENTICATION', 'SSL_CERT')
 SSL_KEY = cfg.get('AUTHENTICATION', 'SSL_KEY')
 USERNAME = cfg.get('AUTHENTICATION', 'USERNAME')
 PASSWORD = cfg.get('AUTHENTICATION', 'PASSWORD')
+
+
 SEEDS = []
 
 items = cfg.items('SEEDS')  # this also includes items in DEFAULTS

@@ -1252,11 +1252,12 @@ class Contract(object):
         return json.dumps(self.contract, indent=4)
 
 
-def check_unfunded_for_payment(db, libbitcoin_client, notification_listener, testnet=False):
+def check_unfunded_for_payment(libbitcoin_client, notification_listener):
     """
     Run through the unfunded contracts in our database and query the
     libbitcoin server to see if they received a payment.
     """
+    db = Database()
     def check(order_id):
         try:
             if os.path.exists(DATA_FOLDER + "purchases/unfunded/" + order_id[0] + ".json"):

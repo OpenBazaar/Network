@@ -3,7 +3,7 @@ Copyright (c) 2014 Brian Muller
 """
 
 import sys
-from twisted.python import log
+from twisted.python import log, logfile
 
 DEBUG = 5
 WARNING = 4
@@ -11,11 +11,21 @@ INFO = 3
 ERROR = 2
 CRITICAL = 1
 
-levels = {"debug": 5, "warning": 4, "info": 3, "error": 2, "critical": 1}
+levels = {
+    "debug": DEBUG,
+    "warning": WARNING,
+    "info": INFO,
+    "error": ERROR,
+    "critical": CRITICAL
+}
 
 class FileLogObserver(log.FileLogObserver):
-    def __init__(self, f=None, level="info", default=DEBUG):
-        log.FileLogObserver.__init__(self, f or sys.stdout)
+    def __init__(self, log_file=None, level="info", default=DEBUG):
+        if log_file:
+            fout = logfile.LogFile.fromFullPath(log_file, rotateLength=15000000, maxRotatedFiles=1)
+        else:
+            fout = sys.stdout
+        log.FileLogObserver.__init__(self, fout)
         self.level = levels[level]
         self.default = default
 

@@ -8,6 +8,7 @@ from interfaces import MessageListener, BroadcastListener, NotificationListener
 from zope.interface import implements
 from protos.objects import PlaintextMessage, Following
 from dht.utils import digest
+from db.datastore import Database
 
 ALLOWED_TAGS = ('h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'u', 'ul', 'ol', 'nl', 'li', 'b', 'i', 'strong',
                 'em', 'strike', 'hr', 'br', 'img', 'blockquote')
@@ -16,9 +17,9 @@ ALLOWED_TAGS = ('h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'u', 'ul', 'ol', 'nl', '
 class MessageListenerImpl(object):
     implements(MessageListener)
 
-    def __init__(self, web_socket_factory, database):
+    def __init__(self, web_socket_factory):
         self.ws = web_socket_factory
-        self.db = database.MessageStore()
+        self.db = Database().MessageStore()
 
     def notify(self, plaintext, signature):
         try:
@@ -49,9 +50,9 @@ class MessageListenerImpl(object):
 class BroadcastListenerImpl(object):
     implements(BroadcastListener)
 
-    def __init__(self, web_socket_factory, database):
+    def __init__(self, web_socket_factory):
         self.ws = web_socket_factory
-        self.db = database
+        self.db = Database()
 
     def notify(self, guid, message):
         # pull the metadata for this node from the db
@@ -83,9 +84,9 @@ class BroadcastListenerImpl(object):
 class NotificationListenerImpl(object):
     implements(NotificationListener)
 
-    def __init__(self, web_socket_factory, database):
+    def __init__(self, web_socket_factory):
         self.ws = web_socket_factory
-        self.db = database
+        self.db = Database()
 
     def notify(self, guid, handle, notif_type, order_id, title, image_hash):
         timestamp = int(time.time())

@@ -18,15 +18,18 @@ from twisted.internet import defer, reactor, task
 from twisted.protocols.basic import FileSender
 
 from config import DATA_FOLDER, RESOLVER, LIBBITCOIN_SERVER_TESTNET, LIBBITCOIN_SERVER, \
-    set_value, get_value, str_to_bool
+    ALLOWIP, set_value, get_value, str_to_bool
+    
 from protos.countries import CountryCode
 from protos import objects
 from keys import blockchainid
 from keys.keychain import KeyChain
+from keys.credentials import get_credentials
 from dht.utils import digest
 from market.profile import Profile
 from market.contracts import Contract
 from net.upnp import PortMapper
+from db.datastore import Database
 
 DEFAULT_RECORDS_COUNT = 20
 DEFAULT_RECORDS_OFFSET = 0
@@ -57,16 +60,15 @@ class OpenBazaarAPI(APIResource):
                 return server.NOT_DONE_YET
         return wraps(func)(_authenticate)
 
-    def __init__(self, mserver, kserver, protocol, username, password, authenticated_sessions):
+    def __init__(self, mserver, kserver, protocol, authenticated_sessions):
         self.mserver = mserver
         self.kserver = kserver
         self.protocol = protocol
-        self.db = mserver.db
-        self.keychain = KeyChain(self.db)
-        self.username = username
-        self.password = password
+        self.db = Database()
+        self.keychain = KeyChain()
         self.authenticated_sessions = authenticated_sessions
         self.failed_login_attempts = {}
+
         task.LoopingCall(self._keep_sessions_alive).start(890, False)
         APIResource.__init__(self)
 
@@ -90,7 +92,8 @@ class OpenBazaarAPI(APIResource):
                         self.failed_login_attempts[request.getHost().host] >= 7:
             return json.dumps({"success": False, "reason": "too many attempts"})
         try:
-            if request.args["username"][0] == self.username and request.args["password"][0] == self.password:
+            username, password = get_credentials()
+            if request.args["username"][0] == username and request.args["password"][0] == password:
                 self.authenticated_sessions.append(request.getSession())
                 if request.getHost().host in self.failed_login_attempts:
                     del self.failed_login_attempts[request.getHost().host]
@@ -1304,11 +1307,11 @@ class OpenBazaarAPI(APIResource):
 
 class RestAPI(Site):
 
-    def __init__(self, mserver, kserver, openbazaar_protocol, username, password,
-                 authenticated_sessions, only_ip="127.0.0.1", timeout=60 * 60 * 1):
-        self.only_ip = only_ip
+    def __init__(self, mserver, kserver, openbazaar_protocol,
+                 authenticated_sessions, timeout=60 * 60 * 1):
+        self.only_ip = ALLOWIP
         api_resource = OpenBazaarAPI(mserver, kserver, openbazaar_protocol,
-                                     username, password, authenticated_sessions)
+                                     authenticated_sessions)
         Site.__init__(self, api_resource, timeout=timeout)
 
     def buildProtocol(self, addr):

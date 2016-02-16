@@ -4,6 +4,7 @@ import json
 from twisted.internet.protocol import Protocol, Factory, connectionDone
 from twisted.internet.task import LoopingCall
 
+from config import ALLOWIP
 
 # pylint: disable=W0232
 class HeartbeatProtocol(Protocol):
@@ -23,17 +24,16 @@ class HeartbeatProtocol(Protocol):
 
 class HeartbeatFactory(Factory):
 
-    def __init__(self, only_ip="127.0.0.1"):
-        self.only_ip = only_ip
+    def __init__(self):
         self.status = "starting up"
         self.protocol = HeartbeatProtocol
         self.clients = []
         LoopingCall(self._heartbeat).start(10, now=True)
 
     def buildProtocol(self, addr):
-        if self.status in ("starting up", "generating GUID") and self.only_ip != "127.0.0.1":
+        if self.status in ("starting up", "generating GUID") and ALLOWIP != "127.0.0.1":
             return
-        if addr.host != self.only_ip and self.only_ip != "0.0.0.0":
+        if addr.host != ALLOWIP and ALLOWIP != "0.0.0.0":
             return
         return Factory.buildProtocol(self, addr)
 
