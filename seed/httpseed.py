@@ -12,7 +12,6 @@ import nacl.hash
 import nacl.signing
 from binascii import hexlify
 from config import DATA_FOLDER
-from daemon import Daemon
 from db.datastore import Database
 from dht.crawling import NodeSpiderCrawl
 from dht.network import Server

@@ -17,8 +17,8 @@ from twisted.web.server import Site
 from twisted.internet import defer, reactor, task
 from twisted.protocols.basic import FileSender
 
-from config import DATA_FOLDER, RESOLVER, LIBBITCOIN_SERVER_TESTNET, LIBBITCOIN_SERVER, \
-    set_value, get_value, str_to_bool
+from config import DATA_FOLDER, RESOLVER, LIBBITCOIN_SERVER_TESTNET, LIBBITCOIN_SERVER
+#    set_value, get_value, str_to_bool
 from protos.countries import CountryCode
 from protos import objects
 from keys import blockchainid
@@ -27,6 +27,7 @@ from dht.utils import digest
 from market.profile import Profile
 from market.contracts import Contract
 from net.upnp import PortMapper
+from utils.string import str_to_bool
 
 DEFAULT_RECORDS_COUNT = 20
 DEFAULT_RECORDS_OFFSET = 0
@@ -798,12 +799,12 @@ class OpenBazaarAPI(APIResource):
                 libbitcoin_server = LIBBITCOIN_SERVER if "libbitcoin_server" not in request.args \
                     or request.args["libbitcoin_server"][0] == "" else request.args["libbitcoin_server"][0]
 
-            if self.protocol.testnet and libbitcoin_server != get_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET"):
-                set_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET", libbitcoin_server)
-            elif not self.protocol.testnet and libbitcoin_server != get_value("CONSTANTS", "LIBBITCOIN_SERVER"):
-                set_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET", libbitcoin_server)
-            if resolver != get_value("CONSTANTS", "RESOLVER"):
-                set_value("CONSTANTS", "RESOLVER", resolver)
+            # if self.protocol.testnet and libbitcoin_server != get_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET"):
+            #     set_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET", libbitcoin_server)
+            # elif not self.protocol.testnet and libbitcoin_server != get_value("CONSTANTS", "LIBBITCOIN_SERVER"):
+            #     set_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET", libbitcoin_server)
+            # if resolver != get_value("CONSTANTS", "RESOLVER"):
+            #     set_value("CONSTANTS", "RESOLVER", resolver)
 
             settings.update(
                 request.args["refund_address"][0],
