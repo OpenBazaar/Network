@@ -10,15 +10,22 @@ You will need Python 2 and pip installed on your system.
 
 Depending on your configuration, you may also need to install python-dev, libffi-dev and python-pylint-common. If you're on Linux, you can do so using your operating system's standard package manager (ex. `sudo apt-get install python-dev`)
 
+First create a virtualenv in the repo:
+
+```bash
+  virtualenv venv
+```
+
 To install all Python requirements, run:
 
 ```bash
-pip install -r requirements.txt
+
+./venv/bin/pip install -r requirements.txt
 ```
 
 Running Unit Tests (optional and non-Windows only)
 ```
-pip install -r test_requirements.txt
+./venv/bin/pip install -r test_requirements.txt
 bash
 make
 ```
@@ -28,19 +35,19 @@ If everything has installed fine, you should get a message that everything went 
 You can now start the server on testnet (recommended at this point) with:
 
 ```bash
-python openbazaard.py start --testnet
+./venv/bin/python openbazaard.py start --testnet
 ```
 
 To run on the regular network:
 
 ```bash
-python openbazaard.py start
+./venv/bin/python openbazaard.py start
 ```
 
 Various options, including those related to logging and debugging, can be displayed like so:
 
 ```bash
-python openbazaard.py start --help
+./venv/bin/python openbazaard.py start --help
 ```
 
 License
