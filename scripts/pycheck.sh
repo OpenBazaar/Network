@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
+
 if command -v pylint; then
     PYLINT=pylint
 elif command -v pylint2; then
@@ -24,7 +29,7 @@ for file in $(find . -name "*.py" \
 done
 
 if (( errored > 0 )); then
-    echo "FAIL: Detected $errored files with errors."
+    echo "FAIL: Detected ${errored} files with errors."
     exit 1
 fi
-echo "PASS: Successfully checked $count files."
+echo "PASS: Successfully checked ${count} files."
