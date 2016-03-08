@@ -353,7 +353,7 @@ class ListingsStore(object):
         ret = cursor.fetchone()
         conn.close()
         if ret is None:
-            return None
+            return ""
         return ret[0]
 
 
