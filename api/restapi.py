@@ -990,17 +990,44 @@ class OpenBazaarAPI(APIResource):
             request.finish()
             return server.NOT_DONE_YET
 
+    # def get_notifications(self, request):
+    #     limit = int(request.args["limit"][0]) if "limit" in request.args else 20
+    #     start = request.args["start"][0] if "start" in request.args else ""
+    #     notifications = self.db.notifications.get_notifications(start, limit)
+    #     notification_dict = {
+    #         "unread": self.db.notifications.get_unread_count(),
+    #         "notifications": []
+    #     }
+    #     for n in notifications[::-1]:
+    #         notification_json = {
+    #             "id": n[0],
+    #             "guid": n[1],
+    #             "handle": n[2],
+    #             "type": n[3],
+    #             "order_id": n[4],
+    #             "title": n[5],
+    #             "timestamp": n[6],
+    #             "image_hash": n[7].encode("hex"),
+    #             "read": False if n[8] == 0 else True
+    #         }
+    #         notification_dict["notifications"].append(notification_json)
+    #     request.setHeader('content-type', "application/json")
+    #     request.write(bleach.clean(json.dumps(notification_dict, indent=4), tags=ALLOWED_TAGS).encode("utf-8"))
+    #     request.finish()
+    #     return server.NOT_DONE_YET
+
     @GET('^/api/v1/get_chat_messages')
     @authenticated
     def get_chat_messages(self, request):
-        messages = self.db.messages.get_messages(request.args["guid"][0], "CHAT")
-        limit = int(request.args["limit"][0]) if "limit" in request.args else len(messages)
-        start = int(request.args["start"][0]) if "start" in request.args else 0
-        for i in range(len(messages)):
-            if messages[i][11] == start:
-                start = i
+        # messages = self.db.messages.get_messages(request.args["guid"][0], "CHAT")
+        limit = int(request.args["limit"][0]) if "limit" in request.args else 20
+        start = request.args["start"][0] if "start" in request.args else ""
+        messages = self.db.messages.get_messages(request.args["guid"][0], "CHAT", start, limit)
+        # for i in range(len(messages)):
+        #     if messages[i][11] == start:
+        #         start = i
         message_list = []
-        for m in messages[::-1][start: start + limit]:
+        for m in messages[::-1]:
             message_json = {
                 "id": m[11],
                 "guid": m[0],
@@ -1016,6 +1043,33 @@ class OpenBazaarAPI(APIResource):
         request.write(bleach.clean(json.dumps(message_list, indent=4), tags=ALLOWED_TAGS).encode("utf-8"))
         request.finish()
         return server.NOT_DONE_YET
+
+    # @GET('^/api/v1/get_chat_messages')
+    # @authenticated
+    # def get_chat_messages(self, request):
+    #     messages = self.db.messages.get_messages(request.args["guid"][0], "CHAT")
+    #     limit = int(request.args["limit"][0]) if "limit" in request.args else len(messages)
+    #     start = int(request.args["start"][0]) if "start" in request.args else 0
+    #     for i in range(len(messages)):
+    #         if messages[i][11] == start:
+    #             start = i
+    #     message_list = []
+    #     for m in messages[::-1][start: start + limit]:
+    #         message_json = {
+    #             "id": m[11],
+    #             "guid": m[0],
+    #             "handle": m[1],
+    #             "message": m[5],
+    #             "timestamp": m[6],
+    #             "avatar_hash": m[7].encode("hex"),
+    #             "outgoing": False if m[9] == 0 else True,
+    #             "read": False if m[10] == 0 else True
+    #         }
+    #         message_list.append(message_json)
+    #     request.setHeader('content-type', "application/json")
+    #     request.write(bleach.clean(json.dumps(message_list, indent=4), tags=ALLOWED_TAGS).encode("utf-8"))
+    #     request.finish()
+    #     return server.NOT_DONE_YET
 
     @GET('^/api/v1/get_chat_conversations')
     @authenticated

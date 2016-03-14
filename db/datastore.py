@@ -533,18 +533,51 @@ class MessageStore(object):
         except Exception:
             return False
 
-    def get_messages(self, guid, message_type):
-        """
-        Return all messages matching guid and message_type.
-        """
+#     def get_notifications(self, notif_id, limit):
+#         conn = Database.connect_database(self.PATH)
+#         cursor = conn.cursor()
+#         start = self.get_row(notif_id)
+#         cursor.execute('''SELECT notifID, guid, handle, type, orderId, title, timestamp,
+# imageHash, read FROM notifications WHERE rowid <=? AND rowid > ?''', (start, start-limit))
+#         ret = cursor.fetchall()
+#         conn.close()
+#         return ret
+
+    def get_messages(self, guid, message_type, start, limit):
         conn = Database.connect_database(self.PATH)
         cursor = conn.cursor()
+        start = self.get_row(guid)
         cursor.execute('''SELECT guid, handle, pubkey, subject, messageType, message,
-timestamp, avatarHash, signature, outgoing, read, msgID FROM messages WHERE guid=? AND messageType=? ''',
-                       (guid, message_type))
+    timestamp, avatarHash, signature, outgoing, read, msgID FROM messages WHERE guid=? AND
+    messageType=? AND rowid <=? AND rowid > ?''', (guid, message_type, start, start-limit))
         ret = cursor.fetchall()
         conn.close()
         return ret
+
+    def get_row(self, guid):
+        conn = Database.connect_database(self.PATH)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT MAX(rowid) FROM messages''')
+        max_row = cursor.fetchone()[0]
+        if max_row is None:
+            max_row = 0
+        cursor.execute('''SELECT rowid FROM messages WHERE guid=?''', (guid, ))
+        ret = cursor.fetchone()
+        conn.close()
+        return max_row if not ret else ret[0]                
+
+#     def get_messages(self, guid, message_type):
+#         """
+#         Return all messages matching guid and message_type.
+#         """
+#         conn = Database.connect_database(self.PATH)
+#         cursor = conn.cursor()
+#         cursor.execute('''SELECT guid, handle, pubkey, subject, messageType, message,
+# timestamp, avatarHash, signature, outgoing, read, msgID FROM messages WHERE guid=? AND messageType=? ''',
+#                        (guid, message_type))
+#         ret = cursor.fetchall()
+#         conn.close()
+#         return ret
 
     def get_order_messages(self, order_id):
         """
