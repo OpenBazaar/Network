@@ -9,6 +9,7 @@ import sys
 import time
 import config
 import zmq
+import random
 from api.ws import WSFactory, AuthenticatedWebSocketProtocol, AuthenticatedWebSocketFactory
 from api.restapi import RestAPI
 from config import DATA_FOLDER, KSIZE, ALPHA, LIBBITCOIN_SERVER,\
@@ -142,14 +143,15 @@ def run(*args):
             server = LIBBITCOIN_SERVER_TESTNET
 
         if "\n" in server:
-            servers = server.split("\n")
+            servers = random.shuffle(server.split("\n"))
             server = None
 
         libbitcoin_client = None
 
         if LIBBITCOIN_CUSTOM_SERVER and len(LIBBITCOIN_CUSTOM_SERVER):
             try:
-                libbitcoin_client = LibbitcoinClient(LIBBITCOIN_CUSTOM_SERVER, log=Logger(service="LibbitcoinClient"))
+                libbitcoin_client = LibbitcoinClient(LIBBITCOIN_CUSTOM_SERVER, \
+                                                     log=Logger(service="LibbitcoinClient"))
             except zmq.error.ZMQError:
                 logger.error("Custom libbitcoin url is invalid")
                 config.set_value("CONSTANTS", "LIBBITCOIN_CUSTOM_SERVER", "")
