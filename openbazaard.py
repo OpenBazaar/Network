@@ -7,10 +7,12 @@ import socket
 import stun
 import sys
 import time
+import config
+import zmq
 from api.ws import WSFactory, AuthenticatedWebSocketProtocol, AuthenticatedWebSocketFactory
 from api.restapi import RestAPI
 from config import DATA_FOLDER, KSIZE, ALPHA, LIBBITCOIN_SERVER,\
-    LIBBITCOIN_SERVER_TESTNET, SSL_KEY, SSL_CERT, SEEDS, SSL
+    LIBBITCOIN_SERVER_TESTNET, LIBBITCOIN_CUSTOM_SERVER, SSL_KEY, SSL_CERT, SEEDS, SSL
 from daemon import Daemon
 from db.datastore import Database
 from dht.network import Server
@@ -133,11 +135,28 @@ def run(*args):
         else:
             reactor.listenTCP(RESTPORT, rest_api, interface=interface)
 
-        # blockchain
+        server = LIBBITCOIN_SERVER
+        servers = None
+
         if TESTNET:
-            libbitcoin_client = LibbitcoinClient(LIBBITCOIN_SERVER_TESTNET, log=Logger(service="LibbitcoinClient"))
-        else:
-            libbitcoin_client = LibbitcoinClient(LIBBITCOIN_SERVER, log=Logger(service="LibbitcoinClient"))
+            server = LIBBITCOIN_SERVER_TESTNET
+
+        if "\n" in server:
+            servers = server.split("\n")
+            server = None
+
+        libbitcoin_client = None
+
+        if LIBBITCOIN_CUSTOM_SERVER and len(LIBBITCOIN_CUSTOM_SERVER):
+            try:
+                libbitcoin_client = LibbitcoinClient(LIBBITCOIN_CUSTOM_SERVER, log=Logger(service="LibbitcoinClient"))
+            except zmq.error.ZMQError:
+                logger.error("Custom libbitcoin url is invalid")
+                config.set_value("CONSTANTS", "LIBBITCOIN_CUSTOM_SERVER", "")
+
+        if libbitcoin_client is None:
+            libbitcoin_client = LibbitcoinClient(server, addresses=servers, log=Logger(service="LibbitcoinClient"))
+
         heartbeat_server.libbitcoin = libbitcoin_client
 
         # listeners

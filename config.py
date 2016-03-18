@@ -29,6 +29,7 @@ DEFAULTS = {
     'transaction_fee': '10000',
     'libbitcoin_server': 'tcp://libbitcoin1.openbazaar.org:9091',
     'libbitcoin_server_testnet': 'tcp://libbitcoin2.openbazaar.org:9091',
+    'libbitcoin_custom_server': '',
     'resolver': 'http://resolver.onename.com/',
     'ssl_cert': None,
     'ssl_key': None,
@@ -164,6 +165,7 @@ ALPHA = int(cfg.get('CONSTANTS', 'ALPHA'))
 TRANSACTION_FEE = int(cfg.get('CONSTANTS', 'TRANSACTION_FEE'))
 LIBBITCOIN_SERVER = cfg.get('CONSTANTS', 'LIBBITCOIN_SERVER')
 LIBBITCOIN_SERVER_TESTNET = cfg.get('CONSTANTS', 'LIBBITCOIN_SERVER_TESTNET')
+LIBBITCOIN_CUSTOM_SERVER = cfg.get('CONSTANTS', 'LIBBITCOIN_CUSTOM_SERVER')
 RESOLVER = cfg.get('CONSTANTS', 'RESOLVER')
 SSL = str_to_bool(cfg.get('AUTHENTICATION', 'SSL'))
 SSL_CERT = cfg.get('AUTHENTICATION', 'SSL_CERT')

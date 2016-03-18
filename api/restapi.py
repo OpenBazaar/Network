@@ -818,17 +818,21 @@ class OpenBazaarAPI(APIResource):
             settings = self.db.settings
             resolver = RESOLVER if "resolver" not in request.args or request.args["resolver"][0] == "" \
                 else request.args["resolver"][0]
-            if self.protocol.testnet:
-                libbitcoin_server = LIBBITCOIN_SERVER_TESTNET if "libbitcoin_server" not in request.args \
-                    or request.args["libbitcoin_server"][0] == "" else request.args["libbitcoin_server"][0]
-            else:
-                libbitcoin_server = LIBBITCOIN_SERVER if "libbitcoin_server" not in request.args \
-                    or request.args["libbitcoin_server"][0] == "" else request.args["libbitcoin_server"][0]
 
-            if self.protocol.testnet and libbitcoin_server != get_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET"):
-                set_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET", libbitcoin_server)
-            elif not self.protocol.testnet and libbitcoin_server != get_value("CONSTANTS", "LIBBITCOIN_SERVER"):
-                set_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET", libbitcoin_server)
+            libbitcoin_server = LIBBITCOIN_SERVER
+
+            if self.protocol.testnet:
+                libbitcoin_server = LIBBITCOIN_SERVER_TESTNET
+
+            if "\n" in libbitcoin_server:
+                libbitcoin_server = libbitcoin_server.split("\n")[0]
+
+            if "libbitcoin_server" in request.args:
+                if request.args["libbitcoin_server"][0] == libbitcoin_server:
+                    set_value("CONSTANTS", "LIBBITCOIN_CUSTOM_SERVER", "")
+                else:
+                    set_value("CONSTANTS", "LIBBITCOIN_CUSTOM_SERVER", request.args["libbitcoin_server"][0])
+
             if resolver != get_value("CONSTANTS", "RESOLVER"):
                 set_value("CONSTANTS", "RESOLVER", resolver)
 
@@ -867,6 +871,18 @@ class OpenBazaarAPI(APIResource):
                 nat_type = "Restricted"
             else:
                 nat_type = "Severely Restricted"
+
+            libbitcoin_server = get_value("CONSTANTS", "LIBBITCOIN_SERVER")
+
+            if self.protocol.testnet:
+                libbitcoin_server = get_value("CONSTANTS", "LIBBITCOIN_SERVER_TESTNET")
+
+            if "\n" in libbitcoin_server:
+                libbitcoin_server = libbitcoin_server.split("\n")[0]
+
+            if len(get_value("CONSTANTS", "LIBBITCOIN_CUSTOM_SERVER")):
+                libbitcoin_server = get_value("CONSTANTS", "LIBBITCOIN_CUSTOM_SERVER")
+
             settings_json = {
                 "refund_address": settings[1],
                 "currency_code": settings[2],
@@ -876,9 +892,7 @@ class OpenBazaarAPI(APIResource):
                 "notifications": True if settings[6] == 1 else False,
                 "shipping_addresses": json.loads(settings[7]),
                 "blocked_guids": json.loads(settings[8]),
-                "libbitcoin_server": get_value(
-                    "CONSTANTS", "LIBBITCOIN_SERVER_TESTNET")if self.protocol.testnet else get_value(
-                        "CONSTANTS", "LIBBITCOIN_SERVER"),
+                "libbitcoin_server": libbitcoin_server,
                 "seed": KeyChain(self.db).signing_key.encode(encoder=nacl.encoding.HexEncoder),
                 "terms_conditions": "" if settings[9] is None else settings[9],
                 "refund_policy": "" if settings[10] is None else settings[10],
