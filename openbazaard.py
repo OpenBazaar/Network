@@ -137,14 +137,12 @@ def run(*args):
             reactor.listenTCP(RESTPORT, rest_api, interface=interface)
 
         server = LIBBITCOIN_SERVER
-        servers = None
 
         if TESTNET:
             server = LIBBITCOIN_SERVER_TESTNET
 
         if "\n" in server:
-            servers = random.shuffle(server.split("\n"))
-            server = None
+            server = random.shuffle(server.split("\n"))
 
         libbitcoin_client = None
 
@@ -157,7 +155,7 @@ def run(*args):
                 config.set_value("CONSTANTS", "LIBBITCOIN_CUSTOM_SERVER", "")
 
         if libbitcoin_client is None:
-            libbitcoin_client = LibbitcoinClient(server, addresses=servers, log=Logger(service="LibbitcoinClient"))
+            libbitcoin_client = LibbitcoinClient(server, log=Logger(service="LibbitcoinClient"))
 
         heartbeat_server.libbitcoin = libbitcoin_client
 
