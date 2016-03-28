@@ -134,7 +134,7 @@ class WSProtocol(Protocol):
                         pass
         self.factory.kserver.get("moderators").addCallback(parse_response)
 
-    def get_homepage_listings(self, message_id):
+    def get_homepage_listings(self, message_id, just_followed_nodes):
         if message_id not in self.factory.outstanding_listings:
             self.factory.outstanding_listings = {}
             self.factory.outstanding_listings[message_id] = []
@@ -183,6 +183,8 @@ class WSProtocol(Protocol):
                 if node.id in vendors:
                     del vendors[node.id]
             else:
+                if just_followed_nodes:
+                    return
                 if node.id in vendors:
                     del vendors[node.id]
                 if node.id in self.factory.mserver.protocol.multiplexer.vendors:
@@ -196,9 +198,33 @@ class WSProtocol(Protocol):
                         self.factory.mserver.get_listings(node_to_ask).addCallback(handle_response, node_to_ask)
 
         vendor_list = vendors.values()
-        shuffle(vendor_list)
-        for vendor in vendor_list[:15]:
-            self.factory.mserver.get_listings(vendor).addCallback(handle_response, vendor)
+
+        follow_data = self.factory.mserver.db.follow.get_following()
+
+        if follow_data is not None:
+            f = objects.Following()
+            f.ParseFromString(follow_data)
+
+            for user in f.users:
+                guid = user.guid
+
+                dht_processor = self.factory.mserver.kserver
+                node_or_callback = dht_processor.resolve(guid)
+
+                def handle_node(node, guid):
+                    if node is not None:
+                        self.factory.mserver.get_listings(node).addCallback(handle_response, node)
+                    else:
+                        self.log.warning("Unable to find followed node for guid: " + guid.encode("hex"))
+
+                if isinstance(node_or_callback, Node):
+                    handle_node(node_or_callback, guid)
+                else:
+                    node_or_callback.addCallback(handle_node, guid)
+        else:
+            shuffle(vendor_list)
+            for vendor in vendor_list[:15]:
+                self.factory.mserver.get_listings(vendor).addCallback(handle_response, vendor)
 
     def send_message(self, message_id, guid, handle, message, subject, message_type, recipient_key):
 
@@ -283,7 +309,7 @@ class WSProtocol(Protocol):
                 self.get_moderators(message_id)
 
             elif request_json["request"]["command"] == "get_homepage_listings":
-                self.get_homepage_listings(message_id)
+                self.get_homepage_listings(message_id, "just_following" in request_json["request"])
 
             elif request_json["request"]["command"] == "search":
                 self.search(message_id, request_json["request"]["keyword"].lower())
