@@ -11,7 +11,6 @@ RUN apt-get update
 RUN apt-get install -y python-dev python-pip build-essential git libffi-dev libssl-dev
 RUN pip install pyopenssl ndg-httpsclient pyasn1
 RUN pip install --upgrade pip virtualenv
-RUN pip install mock coverage nose pylint
 RUN git clone https://github.com/OpenBazaar/OpenBazaar-Server.git
 WORKDIR /OpenBazaar-Server/
 RUN pip install -r requirements.txt && pip install -r test_requirements.txt
