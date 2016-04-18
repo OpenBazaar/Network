@@ -54,7 +54,7 @@ class Contract(object):
             self.contract = contract
         elif hash_value is not None:
             try:
-                file_path = self.db.filemap.get_file(hash_value.encode("hex"))
+                file_path = self.db.filemap.get_local_file(hash_value.encode("hex"))
                 if file_path is None:
                     file_path = DATA_FOLDER + "cache/" + hash_value.encode("hex")
                 with open(file_path, 'r') as filename:
@@ -918,13 +918,13 @@ class Contract(object):
         """
 
         # get the file path
-        file_path = self.db.filemap.get_file(self.contract["vendor_offer"]["listing"]["contract_id"])
+        file_path = self.db.filemap.get_local_file(self.contract["vendor_offer"]["listing"]["contract_id"])
 
         # maybe delete the images from disk
         if "image_hashes" in self.contract["vendor_offer"]["listing"]["item"] and delete_images:
             for image_hash in self.contract["vendor_offer"]["listing"]["item"]["image_hashes"]:
                 # delete from disk
-                image_path = self.db.filemap.get_file(image_hash)
+                image_path = self.db.filemap.get_local_file(image_hash)
                 if os.path.exists(image_path):
                     os.remove(image_path)
                 # remove pointer to the image from the filemap
@@ -959,8 +959,8 @@ class Contract(object):
         file_name += str(self.contract["vendor_offer"]["listing"]["contract_id"])[:8]
 
         # save the json contract to the file system
-        file_path = DATA_FOLDER + "store/contracts/listings/" + file_name + ".json"
-        with open(file_path, 'w') as outfile:
+        file_path = "store/contracts/listings/" + file_name + ".json"
+        with open(os.path.join(DATA_FOLDER, file_path), 'w') as outfile:
             outfile.write(json.dumps(self.contract, indent=4))
 
         if self.previous_title and self.previous_title != self.contract["vendor_offer"]["listing"]["item"]["title"]:
@@ -1079,7 +1079,7 @@ class Contract(object):
             contract_id = self.contract["vendor_offer"]["listing"]["contract_id"]
 
             # verify that the reference hash matches the contract and that the contract actually exists
-            if contract_hash != ref_hash or not self.db.filemap.get_file(contract_id):
+            if contract_hash != ref_hash or not self.db.filemap.get_local_file(contract_id):
                 raise Exception("Order for contract that doesn't exist")
 
             # verify the vendor's own signature

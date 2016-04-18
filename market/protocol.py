@@ -51,7 +51,7 @@ class MarketProtocol(RPCProtocol):
         self.log.info("serving contract %s to %s" % (contract_hash.encode('hex'), sender))
         self.router.addContact(sender)
         try:
-            with open(self.db.filemap.get_file(contract_hash.encode("hex")), "r") as filename:
+            with open(self.db.filemap.get_local_file(contract_hash.encode("hex")), "r") as filename:
                 contract = filename.read()
             return [contract]
         except Exception:
@@ -65,7 +65,7 @@ class MarketProtocol(RPCProtocol):
                 self.log.warning("Image hash is not 20 characters %s" % image_hash)
                 raise Exception("Invalid image hash")
             self.log.info("serving image %s to %s" % (image_hash.encode('hex'), sender))
-            with open(self.db.filemap.get_file(image_hash.encode("hex")), "rb") as filename:
+            with open(self.db.filemap.get_local_file(image_hash.encode("hex")), "rb") as filename:
                 image = filename.read()
             return [image]
         except Exception:

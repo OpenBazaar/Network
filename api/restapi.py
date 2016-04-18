@@ -129,8 +129,8 @@ class OpenBazaarAPI(APIResource):
             request.finish()
 
         if "hash" in request.args and len(request.args["hash"][0]) == 40:
-            if self.db.filemap.get_file(request.args["hash"][0]) is not None:
-                image_path = self.db.filemap.get_file(request.args["hash"][0])
+            if self.db.filemap.get_local_file(request.args["hash"][0]) is not None:
+                image_path = self.db.filemap.get_local_file(request.args["hash"][0])
             else:
                 image_path = DATA_FOLDER + "cache/" + request.args["hash"][0]
             if not os.path.exists(image_path) and "guid" in request.args:
@@ -512,7 +512,7 @@ class OpenBazaarAPI(APIResource):
                 self.kserver.resolve(unhexlify(request.args["guid"][0])).addCallback(get_node)
             else:
                 try:
-                    with open(self.db.filemap.get_file(request.args["id"][0]), "r") as filename:
+                    with open(self.db.filemap.get_local_file(request.args["id"][0]), "r") as filename:
                         contract = json.loads(filename.read(), object_pairs_hook=OrderedDict)
                     parse_contract(contract)
                 except Exception:
@@ -593,7 +593,7 @@ class OpenBazaarAPI(APIResource):
     def delete_contract(self, request):
         try:
             if "id" in request.args:
-                file_path = self.db.filemap.get_file(request.args["id"][0])
+                file_path = self.db.filemap.get_local_file(request.args["id"][0])
                 with open(file_path, 'r') as filename:
                     contract = json.load(filename, object_pairs_hook=OrderedDict)
                 c = Contract(self.db, contract=contract)
