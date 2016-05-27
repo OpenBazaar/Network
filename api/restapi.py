@@ -572,6 +572,7 @@ class OpenBazaarAPI(APIResource):
                 condition=request.args["condition"][0].decode("utf8")
                 if request.args["condition"][0] is not "" else None,
                 sku=request.args["sku"][0].decode("utf8") if request.args["sku"][0] is not "" else None,
+                size=request.args["size"][0].decode("utf8") if request.args["size"][0] is not "" else None,
                 images=request.args["images"],
                 free_shipping=str_to_bool(request.args["free_shipping"][0]),
                 options=options if "options" in request.args else None,
