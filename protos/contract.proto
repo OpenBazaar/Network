@@ -77,6 +77,7 @@ message VendorOffer {
             string SKU               = 8;
             string condition         = 9;
             repeated Options options = 10;
+            string Size              = 11;
         }
 
         message PPU {
