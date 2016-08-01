@@ -13,3 +13,4 @@ pyopenssl==0.15.1
 miniupnpc==1.9
 bleach==1.4.2
 service_identity
+html5lib==0.999
