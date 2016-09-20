@@ -99,6 +99,6 @@ class BtcPrice(Thread):
             self.prices[currency] = info["last"]
 
     def loadbitcoincharts(self):
-        for currency, info in self.dictForUrl('https://api.bitcoincharts.com/v1/weighted_prices.json').iteritems():
+        for currency, info in self.dictForUrl('http://api.bitcoincharts.com/v1/weighted_prices.json').iteritems():
             if currency != "timestamp":
                 self.prices[currency] = info["24h"]
