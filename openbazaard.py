@@ -37,6 +37,8 @@ from twisted.internet import reactor, task
 from twisted.python import log, logfile
 from txws import WebSocketFactory
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 def run(*args):
     TESTNET = args[0]
