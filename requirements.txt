@@ -28,3 +28,4 @@ python-bitcoinlib
 miniupnpc
 txrudp
 python-libbitcoinclient
+service_identity
