@@ -81,7 +81,7 @@ class WSProtocol(Protocol):
                 self.factory.db.vendors.delete_vendor(node.id.encode("hex"))
                 return False
 
-        for node in to_query[:30]:
+        for node in to_query:
             self.factory.mserver.get_user_metadata(node).addCallback(handle_response, node)
 
     def get_moderators(self, message_id):
