@@ -115,6 +115,7 @@ class Contract(object):
                category=None,
                condition=None,
                sku=None,
+               size=None,
                images=None,
                free_shipping=None,
                shipping_currency_code=None,
@@ -197,6 +198,8 @@ class Contract(object):
             self.contract["vendor_offer"]["listing"]["item"]["category"] = category
         if sku is not None:
             self.contract["vendor_offer"]["listing"]["item"]["sku"] = sku
+        if size is not None:
+            self.contract["vendor_offer"]["listing"]["item"]["size"] = size
         if options is not None:
             self.contract["vendor_offer"]["listing"]["item"]["options"] = options
         if metadata_category == "physical good":
