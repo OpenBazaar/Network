@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenBazaar Server
+
+[Service]
+# Set path to openbazaard
+Environment=OB_PATH=/home/tobin/build/github/openbazaar/server/openbazaard.py
+Environment=OB_START=start -t'
+
+# Set path to Python 2 (remember virtual environment if you use one)
+ExecStart=/home/tobin/build/github/openbazaar/venv/bin/python $OB_PATH $OB_START
+
+#Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
