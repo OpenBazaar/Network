@@ -161,7 +161,7 @@ if isfile(CONFIG_FILE):
 else:
     print 'Warning: configuration file not found: (%s), using default values' % CONFIG_FILE
 
-DATA_FOLDER = _platform_agnostic_data_path(cfg.get('CONSTANTS', 'DATA_FOLDER'))
+DATA_FOLDER = join(_platform_agnostic_data_path(cfg.get('CONSTANTS', 'DATA_FOLDER'), ''))
 KSIZE = int(cfg.get('CONSTANTS', 'KSIZE'))
 ALPHA = int(cfg.get('CONSTANTS', 'ALPHA'))
 TRANSACTION_FEE = int(cfg.get('CONSTANTS', 'TRANSACTION_FEE'))
