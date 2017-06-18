@@ -29,6 +29,7 @@ from market.contracts import Contract, check_order_for_payment
 from market.btcprice import BtcPrice
 from net.upnp import PortMapper
 from api.utils import sanitize_html
+import db.backuptool
 
 DEFAULT_RECORDS_COUNT = 20
 DEFAULT_RECORDS_OFFSET = 0
@@ -103,7 +104,6 @@ class OpenBazaarAPI(APIResource):
         except Exception:
             self._failed_login(request.getHost().host)
             return json.dumps({"success": False, "reason": "invalid username or password"})
-
 
     @GET('^/api/v1/get_image')
     @authenticated
@@ -1060,6 +1060,18 @@ class OpenBazaarAPI(APIResource):
             request.write(json.dumps({"success": False, "reason": e.message}, indent=4))
             request.finish()
             return server.NOT_DONE_YET
+
+    @POST('^/api/v1/backup_files')
+    def backup_files(self, request):
+        """Archives OpenBazaar files in a single tar archive."""
+        output_name = request.args["output_name"][0]
+        return db.backuptool.backupfiles(output_name)
+
+    @POST('^/api/v1/restore_files')
+    def restore_files(self, request):
+        """Restores files of given archive to OpenBazaar folder."""
+        input_file = request.args["input_file"][0]
+        return db.backuptool.restorefiles(input_file)
 
     @GET('^/api/v1/get_chat_messages')
     @authenticated
