@@ -2,7 +2,9 @@
 ---
 
 # OpenBazaar Server
-[![Build Status](https://travis-ci.org/OpenBazaar/OpenBazaar-Server.svg?branch=master)](https://travis-ci.org/OpenBazaar/OpenBazaar-Server) [![Coverage Status](https://coveralls.io/repos/OpenBazaar/OpenBazaar-Server/badge.svg?branch=master&service=github)](https://coveralls.io/github/OpenBazaar/OpenBazaar-Server?branch=master) [![Slack Status](https://openbazaar-slackin-drwasho.herokuapp.com/badge.svg)](https://openbazaar-slackin-drwasho.herokuapp.com)
+[![Build Status](https://travis-ci.org/OpenBazaar/OpenBazaar-Server.svg?branch=master)](https://travis-ci.org/OpenBazaar/OpenBazaar-Server) 
+[![Coverage Status](https://coveralls.io/repos/OpenBazaar/OpenBazaar-Server/badge.svg?branch=master&service=github)](https://coveralls.io/github/OpenBazaar/OpenBazaar-Server?branch=master) 
+[![Slack Status](https://img.shields.io/badge/Slack%20Status-Unknown-orange.svg)](https://openbazaar-slackin-drwasho.herokuapp.com)
 
 This repo contains the OpenBazaar networking daemon that can be used to access the p2p network. It establishes connections and maintains
 a Kademlia style DHT. Rest and websocket APIs are available for clients to communicate with the daemon.
