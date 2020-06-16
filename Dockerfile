@@ -40,4 +40,4 @@ VOLUME /root/.openbazaar
 VOLUME /ssl
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["python", "openbazaard.py", "start"]
+CMD ["python", "openbazaard.py", "start", "-a 0.0.0.0"]
